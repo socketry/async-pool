@@ -21,7 +21,7 @@
 require 'async/pool/controller'
 require 'async/pool/resource'
 
-RSpec.describe Async::Pool::Controller do
+RSpec.describe Async::Pool::Controller, timeout: 1 do
 	include_context Async::RSpec::Reactor
 	
 	subject {described_class.new(Async::Pool::Resource)}
@@ -106,6 +106,27 @@ RSpec.describe Async::Pool::Controller do
 				expect(state).to be :acquired
 				
 				expect(outer).to be inner
+			end
+		end
+	end
+	
+	context "with non-blocking connect" do
+		subject do
+			described_class.wrap do
+				# Simulate a non-blocking connection:
+				Async::Task.current.sleep(0.1)
+				
+				Async::Pool::Resource.new
+			end
+		end
+		
+		describe '#acquire' do
+			it "can reuse resources" do
+				3.times do
+					subject.acquire{}
+				end
+				
+				expect(subject.size).to be == 1
 			end
 		end
 	end

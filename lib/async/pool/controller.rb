@@ -32,7 +32,9 @@ module Async
 			
 			def initialize(constructor, limit: nil)
 				@resources = {}
-				@available = Async::Notification.new
+				
+				@available = []
+				@notification = Async::Notification.new
 				
 				@limit = limit
 				
@@ -42,6 +44,10 @@ module Async
 			
 			# @attr [Hash<Resource, Integer>] all allocated resources, and their associated usage.
 			attr :resources
+			
+			def size
+				@resources.size
+			end
 			
 			# Whether the pool has any active resources.
 			def active?
@@ -59,7 +65,7 @@ module Async
 			
 			# Wait until a pool resource has been freed.
 			def wait
-				@available.wait
+				@notification.wait
 			end
 			
 			def empty?
@@ -131,7 +137,7 @@ module Async
 				
 				resource.close
 				
-				@available.signal
+				@notification.signal
 			end
 			
 			protected
@@ -150,20 +156,21 @@ module Async
 				Async.logger.debug(self) {"Reuse #{resource}"}
 				
 				@resources[resource] -= 1
+				@available.push(resource)
 				
-				@available.signal
+				@notification.signal
 			end
 			
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
-					@available.wait
+					@notification.wait
 				end
 				
-				Async.logger.debug(self) {"Wait for resource #{resource}"}
+				Async.logger.debug(self) {"Wait for resource -> #{resource}"}
 				
 				# if resource.concurrency > 1
-				# 	@available.signal
+				# 	@notification.signal
 				# end
 				
 				return resource
@@ -173,27 +180,30 @@ module Async
 				# This might return nil, which means creating the resource failed.
 				if resource = @constructor.call
 					@resources[resource] = 1
+					
+					@available.push(resource) if resource.concurrency > 1
 				end
 				
 				return resource
 			end
 			
 			def available_resource
-				# TODO This is a linear search... not ideal, but simple for now.
-				@resources.each do |resource, count|
-					if count < resource.concurrency
-						# We want to use this resource... but is it connected?
-						if resource.viable?
-							@resources[resource] += 1
-							
-							return resource
+				@guard.acquire do
+					while resource = @available.last
+						if usage = @resources[resource] and usage < resource.concurrency
+							if resource.viable?
+								@resources[resource] += 1
+								
+								return resource
+							else
+								retire(resource)
+								@available.pop
+							end
 						else
-							retire(resource)
+							@available.pop
 						end
 					end
-				end
-				
-				@guard.acquire do
+					
 					if @limit.nil? or @resources.size < @limit
 						Async.logger.debug(self) {"No resources resources, allocating new one..."}
 						
