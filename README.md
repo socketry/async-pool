@@ -2,7 +2,7 @@
 
 Provides support for connection pooling both singleplex and multiplex resources.
 
-[![Build Status](https://travis-ci.com/socketry/async-pool.svg)](https://travis-ci.com/socketry/async-pool)
+[![Actions Status](https://github.com/socketry/async-pool/workflows/Development/badge.svg)](https://github.com/socketry/async-pool/actions?workflow=Development)
 
 ## Installation
 
