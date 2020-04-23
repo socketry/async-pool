@@ -131,3 +131,22 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 		end
 	end
 end
+
+RSpec.describe Async::Pool::Controller, timeout: 1 do
+	subject {described_class.new(Async::Pool::Resource)}
+	
+	describe '#close' do
+		it "closes all resources when going out of scope" do
+			Async do
+				object = subject.acquire
+				expect(object).to_not be_nil
+				subject.release(object)
+				
+				# There is some resource which is still open:
+				expect(subject.resources).to_not be_empty
+			end
+			
+			expect(subject.resources).to be_empty
+		end
+	end
+end

@@ -40,6 +40,8 @@ module Async
 				
 				@constructor = constructor
 				@guard = Async::Semaphore.new(1)
+				
+				@gardener = nil
 			end
 			
 			# @attr [Hash<Resource, Integer>] all allocated resources, and their associated usage.
@@ -97,6 +99,8 @@ module Async
 			def close
 				@resources.each_key(&:close)
 				@resources.clear
+				
+				@gardener&.stop
 			end
 			
 			def to_s
@@ -142,6 +146,19 @@ module Async
 			
 			protected
 			
+			def start_gardener
+				return if @gardener
+				
+				Async(transient: true) do |task|
+					@gardener = task
+					
+					Task.yield
+				ensure
+					@gardener = nil
+					self.close
+				end
+			end
+			
 			def usage_string
 				"#{@resources.size}/#{@limit || '∞'}"
 			end
@@ -177,6 +194,8 @@ module Async
 			end
 			
 			def create_resource
+				self.start_gardener
+				
 				# This might return nil, which means creating the resource failed.
 				if resource = @constructor.call
 					@resources[resource] = 1
