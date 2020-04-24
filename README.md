@@ -30,7 +30,7 @@ Or install it yourself as:
 pool = Async::Pool::Controller.new(Async::Pool::Resource)
 
 pool.acquire do |resource|
-	# resource is implicitly released when exiting the block.
+  # resource is implicitly released when exiting the block.
 end
 
 resource = pool.acquire
