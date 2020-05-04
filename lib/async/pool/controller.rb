@@ -20,6 +20,7 @@
 
 require 'async/logger'
 
+require 'async'
 require 'async/notification'
 require 'async/semaphore'
 
