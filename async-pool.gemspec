@@ -6,6 +6,7 @@ Gem::Specification.new do |spec|
 	spec.version       = Async::Pool::VERSION
 	spec.authors       = ["Samuel Williams"]
 	spec.email         = ["samuel.williams@oriontransfer.co.nz"]
+	spec.licenses      = ["MIT"]
 	
 	spec.summary       = "A Redis client library."
 	spec.homepage      = "https://github.com/socketry/async-pool"
