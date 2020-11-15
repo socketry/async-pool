@@ -225,7 +225,7 @@ module Async
 					end
 					
 					if @limit.nil? or @resources.size < @limit
-						Async.logger.debug(self) {"No resources, allocating new one..."}
+						Async.logger.debug(self) {"No available resources, allocating new one..."}
 						
 						return create_resource
 					end
