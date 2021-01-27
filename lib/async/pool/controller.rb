@@ -23,6 +23,7 @@ require 'async/logger'
 require 'async'
 require 'async/notification'
 require 'async/semaphore'
+require 'set'
 
 module Async
 	module Pool
@@ -34,7 +35,7 @@ module Async
 			def initialize(constructor, limit: nil)
 				@resources = {}
 				
-				@available = []
+				@available = Set.new
 				@notification = Async::Notification.new
 				
 				@limit = limit
@@ -174,7 +175,7 @@ module Async
 				Async.logger.debug(self) {"Reuse #{resource}"}
 				
 				@resources[resource] -= 1
-				@available.push(resource)
+				@available.add(resource)
 				
 				@notification.signal
 			end
@@ -201,7 +202,7 @@ module Async
 				if resource = @constructor.call
 					@resources[resource] = 1
 					
-					@available.push(resource) if resource.concurrency > 1
+					@available.add(resource) if resource.concurrency > 1
 				end
 				
 				return resource
@@ -209,7 +210,7 @@ module Async
 			
 			def available_resource
 				@guard.acquire do
-					while resource = @available.last
+					while resource = @available.first
 						if usage = @resources[resource] and usage < resource.concurrency
 							if resource.viable?
 								@resources[resource] += 1
@@ -217,10 +218,10 @@ module Async
 								return resource
 							else
 								retire(resource)
-								@available.pop
+								@available.delete(resource)
 							end
 						else
-							@available.pop
+							@available.delete(resource)
 						end
 					end
 					
