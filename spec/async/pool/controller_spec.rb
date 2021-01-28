@@ -18,8 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'async/pool/controller'
-require 'async/pool/resource'
+require_relative 'controller_helper'
 
 RSpec.describe Async::Pool::Controller, timeout: 1 do
 	include_context Async::RSpec::Reactor

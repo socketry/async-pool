@@ -32,9 +32,12 @@ module Async
 			end
 			
 			def initialize(constructor, limit: nil)
+				# All available resources:
 				@resources = {}
 				
+				# This list may contain false positives:
 				@available = []
+				
 				@notification = Async::Notification.new
 				
 				@limit = limit
@@ -45,7 +48,7 @@ module Async
 				@gardener = nil
 			end
 			
-			# @attr [Hash<Resource, Integer>] all allocated resources, and their associated usage.
+			# @attribute [Hash(Resource, Integer)] all allocated resources, and their associated usage.
 			attr :resources
 			
 			def size
@@ -119,7 +122,9 @@ module Async
 				unused = []
 				
 				@resources.each do |resource, usage|
-					unused << resource if usage.zero?
+					if usage.zero?
+						unused << resource
+					end
 				end
 				
 				unused.each do |resource|
@@ -132,6 +137,14 @@ module Async
 					break if @resources.size <= retain
 				end
 				
+				# Update availability list:
+				@available.clear
+				@resources.each do |resource, usage|
+					if usage < resource.concurrency
+						@available << resource
+					end
+				end
+				
 				return unused.size
 			end
 			
@@ -139,7 +152,6 @@ module Async
 				Async.logger.debug(self) {"Retire #{resource}"}
 				
 				@resources.delete(resource)
-				
 				resource.close
 				
 				@notification.signal
@@ -173,8 +185,14 @@ module Async
 			def reuse(resource)
 				Async.logger.debug(self) {"Reuse #{resource}"}
 				
-				@resources[resource] -= 1
-				@available.push(resource)
+				usage = @resources[resource]
+				
+				# If the resource was fully utilized, it now becomes available:
+				if usage == resource.concurrency
+					@available.push(resource)
+				end
+				
+				@resources[resource] = usage - 1
 				
 				@notification.signal
 			end
@@ -201,7 +219,10 @@ module Async
 				if resource = @constructor.call
 					@resources[resource] = 1
 					
-					@available.push(resource) if resource.concurrency > 1
+					# Make the resource available if it can be used multiple times:
+					if resource.concurrency > 1
+						@available.push(resource)
+					end
 				end
 				
 				return resource
@@ -212,7 +233,12 @@ module Async
 					while resource = @available.last
 						if usage = @resources[resource] and usage < resource.concurrency
 							if resource.viable?
-								@resources[resource] += 1
+								usage = (@resources[resource] += 1)
+								
+								if usage == resource.concurrency
+									# The resource is used up to it's limit:
+									@available.pop
+								end
 								
 								return resource
 							else
@@ -220,6 +246,7 @@ module Async
 								@available.pop
 							end
 						else
+							# The resource has been removed already, so skip it and remove it from the availability list.
 							@available.pop
 						end
 					end
