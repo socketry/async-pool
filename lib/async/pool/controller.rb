@@ -35,7 +35,8 @@ module Async
 				# All available resources:
 				@resources = {}
 				
-				# This list may contain false positives:
+				# Resources which may be available to be acquired:
+				# This list may contain false positives, or resources which were okay but have since entered a state which is unusuable.
 				@available = []
 				
 				@notification = Async::Notification.new
@@ -67,6 +68,11 @@ module Async
 				end
 				
 				return false
+			end
+			
+			# Whether there are available resources, i.e. whether {#acquire} can reuse an existing resource.
+			def available?
+				@available.any?
 			end
 			
 			# Wait until a pool resource has been freed.
@@ -140,7 +146,7 @@ module Async
 				# Update availability list:
 				@available.clear
 				@resources.each do |resource, usage|
-					if usage < resource.concurrency
+					if usage < resource.concurrency and resource.reusable?
 						@available << resource
 					end
 				end
@@ -152,6 +158,7 @@ module Async
 				Async.logger.debug(self) {"Retire #{resource}"}
 				
 				@resources.delete(resource)
+				
 				resource.close
 				
 				@notification.signal
@@ -182,10 +189,35 @@ module Async
 				end.join(";")
 			end
 			
+			def usage
+				@resources.count{|resource, usage| usage > 0}
+			end
+			
+			def free
+				@resources.count{|resource, usage| usage == 0}
+			end
+			
+			# @returns [Boolean] Whether the number of available resources is excessive and we should retire some.
+			def overflowing?
+				if @resources.any?
+					(self.free.to_f / @resources.size) > 0.5
+				end
+			end
+			
 			def reuse(resource)
 				Async.logger.debug(self) {"Reuse #{resource}"}
-				
 				usage = @resources[resource]
+				
+				if usage.zero?
+					raise "Trying to reuse unacquired resource: #{resource}!"
+				end
+				
+				# We retire resources when adding to the @available list would overflow our pool:
+				if usage == 1
+					if overflowing?
+						return retire(resource)
+					end
+				end
 				
 				# If the resource was fully utilized, it now becomes available:
 				if usage == resource.concurrency
@@ -212,6 +244,7 @@ module Async
 				return resource
 			end
 			
+			# @returns [Object] A new resource in a "used" state.
 			def create_resource
 				self.start_gardener
 				
@@ -228,6 +261,7 @@ module Async
 				return resource
 			end
 			
+			# @returns [Object] An existing resource in a "used" state.
 			def available_resource
 				@guard.acquire do
 					while resource = @available.last

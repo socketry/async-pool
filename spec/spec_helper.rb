@@ -1,6 +1,5 @@
 
 require 'covered/rspec'
-
 require 'async/rspec'
 
 # Async.logger.level = Logger::DEBUG
