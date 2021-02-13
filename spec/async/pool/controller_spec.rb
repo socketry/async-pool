@@ -96,6 +96,30 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 		end
 	end
 	
+	describe '#close' do
+		it "will no longer be active" do
+			object = subject.acquire
+			expect(object).to receive(:reusable?).and_return(true)
+			subject.release(object)
+			
+			subject.close
+			
+			expect(subject).to_not be_active
+		end
+		
+		it "should clear list of available resources" do
+			object = subject.acquire
+			expect(object).to receive(:reusable?).and_return(true)
+			subject.release(object)
+			
+			expect(subject.available).to_not be_empty
+			
+			subject.close
+			
+			expect(subject.available).to be_empty
+		end
+	end
+	
 	describe '#to_s' do
 		it "can inspect empty pool" do
 			expect(subject.to_s).to match("0/∞")

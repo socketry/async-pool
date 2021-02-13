@@ -107,6 +107,8 @@ module Async
 			end
 			
 			def close
+				@available.clear
+				
 				@resources.each_key(&:close)
 				@resources.clear
 				
@@ -169,7 +171,7 @@ module Async
 			def start_gardener
 				return if @gardener
 				
-				Async(transient: true) do |task|
+				Async(transient: true, annotation: "#{self.class} Gardener") do |task|
 					@gardener = task
 					
 					Task.yield
