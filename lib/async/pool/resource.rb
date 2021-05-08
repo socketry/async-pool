@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'async/logger'
+require 'console/logger'
 
 require 'async/notification'
 require 'async/semaphore'

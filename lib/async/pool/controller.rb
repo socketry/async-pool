@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'async/logger'
+require 'console/logger'
 
 require 'async'
 require 'async/notification'
@@ -157,7 +157,7 @@ module Async
 			end
 			
 			def retire(resource)
-				Async.logger.debug(self) {"Retire #{resource}"}
+				Console.logger.debug(self) {"Retire #{resource}"}
 				
 				@resources.delete(resource)
 				
@@ -207,7 +207,7 @@ module Async
 			end
 			
 			def reuse(resource)
-				Async.logger.debug(self) {"Reuse #{resource}"}
+				Console.logger.debug(self) {"Reuse #{resource}"}
 				usage = @resources[resource]
 				
 				if usage.zero?
@@ -237,7 +237,7 @@ module Async
 					@notification.wait
 				end
 				
-				Async.logger.debug(self) {"Wait for resource -> #{resource}"}
+				Console.logger.debug(self) {"Wait for resource -> #{resource}"}
 				
 				# if resource.concurrency > 1
 				# 	@notification.signal
@@ -288,7 +288,7 @@ module Async
 					end
 					
 					if @limit.nil? or @resources.size < @limit
-						Async.logger.debug(self) {"No available resources, allocating new one..."}
+						Console.logger.debug(self) {"No available resources, allocating new one..."}
 						
 						return create_resource
 					end

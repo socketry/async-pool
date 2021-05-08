@@ -2,7 +2,7 @@
 require 'covered/rspec'
 require 'async/rspec'
 
-# Async.logger.level = Logger::DEBUG
+# Console.logger.level = Logger::DEBUG
 
 RSpec.configure do |config|
 	config.disable_monkey_patching
