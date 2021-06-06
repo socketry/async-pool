@@ -265,36 +265,45 @@ module Async
 			
 			# @returns [Object] An existing resource in a "used" state.
 			def available_resource
+				resource = nil
+				
 				@guard.acquire do
-					while resource = @available.last
-						if usage = @resources[resource] and usage < resource.concurrency
-							if resource.viable?
-								usage = (@resources[resource] += 1)
-								
-								if usage == resource.concurrency
-									# The resource is used up to it's limit:
-									@available.pop
-								end
-								
-								return resource
-							else
-								retire(resource)
+					resource = get_resource
+				end
+				
+				return resource
+			rescue Exception
+				reuse(resource) if resource
+				raise
+			end
+			
+			private def get_resource
+				while resource = @available.last
+					if usage = @resources[resource] and usage < resource.concurrency
+						if resource.viable?
+							usage = (@resources[resource] += 1)
+							
+							if usage == resource.concurrency
+								# The resource is used up to it's limit:
 								@available.pop
 							end
+							
+							return resource
 						else
-							# The resource has been removed already, so skip it and remove it from the availability list.
+							retire(resource)
 							@available.pop
 						end
-					end
-					
-					if @limit.nil? or @resources.size < @limit
-						Console.logger.debug(self) {"No available resources, allocating new one..."}
-						
-						return create_resource
+					else
+						# The resource has been removed already, so skip it and remove it from the availability list.
+						@available.pop
 					end
 				end
 				
-				return nil
+				if @limit.nil? or @resources.size < @limit
+					Console.logger.debug(self) {"No available resources, allocating new one..."}
+					
+					return create_resource
+				end
 			end
 		end
 	end
