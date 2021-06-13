@@ -24,3 +24,31 @@ require 'async/pool/resource'
 class Async::Pool::Controller
 	attr :available
 end
+
+class NonblockingResource < Async::Pool::Resource
+	# Whether this resource can be acquired.
+	# @return [Boolean] whether the resource can actually be used.
+	def viable?
+		Async::Task.current.yield
+		!@closed
+	end
+	
+	# Whether the resource has been closed by the user.
+	# @return [Boolean] whether the resource has been closed or has failed.
+	def closed?
+		Async::Task.current.yield
+		@closed
+	end
+	
+	# Close the resource explicitly, e.g. the pool is being closed.
+	def close
+		Async::Task.current.yield
+		@closed = true
+	end
+	
+	# Whether this resource can be reused. Used when releasing resources back into the pool.
+	def reusable?
+		Async::Task.current.yield
+		!@closed
+	end
+end

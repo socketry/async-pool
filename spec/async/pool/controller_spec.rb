@@ -178,6 +178,44 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 			end
 		end
 	end
+	
+	context "robustness", timeout: 10 do
+		subject {described_class.new(NonblockingResource)}
+		
+		def failures(repeats: 500, time_scale: 0.001, &block)
+			count = 0
+			backtraces = Set.new
+			
+			Sync do |task|
+				while count < repeats
+					begin
+						task.with_timeout(rand * time_scale, &block)
+					rescue Async::TimeoutError => error
+						backtraces << error.backtrace.first(10)
+						count += 1
+					else
+						if count.zero?
+							time_scale /= 2
+						end
+					end
+				end
+			end
+			
+			# pp backtraces
+		end
+		
+		it "releases resources" do
+			failures do
+				begin
+					resource = subject.acquire
+				ensure
+					subject.release(resource) if resource
+				end
+			end
+			
+			expect(subject).to_not be_busy
+		end
+	end
 end
 
 RSpec.describe Async::Pool::Controller, timeout: 1 do
