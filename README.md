@@ -2,23 +2,23 @@
 
 Provides support for connection pooling both singleplex and multiplex resources.
 
-[![Actions Status](https://github.com/socketry/async-pool/workflows/Development/badge.svg)](https://github.com/socketry/async-pool/actions?workflow=Development)
+[![Development Status](https://github.com/socketry/async-pool/workflows/Development/badge.svg)](https://github.com/socketry/async-pool/actions?workflow=Development)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-```ruby
+``` ruby
 gem 'async-pool'
 ```
 
 And then execute:
 
-	$ bundle
+    $ bundle
 
 Or install it yourself as:
 
-	$ gem install async-pool
+    $ gem install async-pool
 
 ## Usage
 
@@ -26,7 +26,7 @@ Or install it yourself as:
 
 `Async::Pool::Resource` is provided as an interface and to document how to use the pools. However, you wouldn't need to use this in practice and just implement the appropriate interface on your own objects.
 
-```ruby
+``` ruby
 pool = Async::Pool::Controller.new(Async::Pool::Resource)
 
 pool.acquire do |resource|
@@ -41,11 +41,11 @@ pool.release(resource)
 
 ## Contributing
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+1.  Fork it
+2.  Create your feature branch (`git checkout -b my-new-feature`)
+3.  Commit your changes (`git commit -am 'Add some feature'`)
+4.  Push to the branch (`git push origin my-new-feature`)
+5.  Create new Pull Request
 
 ## License
 
