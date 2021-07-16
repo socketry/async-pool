@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 	
 	spec.required_ruby_version = ">= 2.5"
 	
-	spec.add_dependency "async", "~> 1.25"
+	spec.add_dependency "async", ">= 1.25"
 	
 	spec.add_development_dependency "async-rspec", "~> 1.1"
 	spec.add_development_dependency "bake-bundler"
