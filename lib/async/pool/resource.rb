@@ -58,6 +58,10 @@ module Async
 			
 			# Close the resource explicitly, e.g. the pool is being closed.
 			def close
+				if @closed
+					raise "Already closed!"
+				end
+				
 				@closed = true
 			end
 			

@@ -98,14 +98,14 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
-				reused = false
+				processed = false
 				
 				# A resource that is not good should also not be reusable.
 				if resource.reusable?
-					reused = reuse(resource)
+					processed = reuse(resource)
 				end
 			ensure
-				retire(resource) unless reused
+				retire(resource) unless processed
 			end
 			
 			def close
@@ -166,6 +166,8 @@ module Async
 				resource.close
 				
 				@notification.signal
+				
+				return true
 			end
 			
 			protected
