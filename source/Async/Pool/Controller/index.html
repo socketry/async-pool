@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		
+			<title>Async::Pool::Controller</title>
+		
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		
+		<link rel="icon" type="image/png" href="../../../../_static/icon.png"/>
+		<link rel="stylesheet" href="../../../../_static/site.css" type="text/css" media="screen"/>
+		
+		<script src="../../../../_components/jquery/jquery.min.js"></script>
+		<script src="../../../../_components/jquery-syntax/jquery.syntax.min.js"></script>
+		<script src="../../../../_components/mermaid/mermaid.min.js"></script>
+		
+		<script src="../../../../_static/links.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+			jQuery(function($) {
+				$.syntax();
+			});
+			
+			let isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches
+			let config = {theme: 'light'};
+			if (isDarkMode) config.theme = 'dark';
+			else config.theme = 'forest';
+			mermaid.initialize(config);
+		//]]>
+		</script>
+	</head>
+
+	<body>
+		<header> › <a class="link" href="../../../../index.html">Project</a> › <a class="link" href="../../../index.html">Source</a></header>
+		
+		<main>
+			
+	<h1><code class="language-ruby">Async::Pool::Controller</code></h1>
+	
+		
+	
+	
+	
+	<section>
+	<h2>Definitions</h2>
+	
+	<section id="Async::Pool::Controller#resources"><h3><code class="language-ruby">attr :resources</code></h3><details open>
+	<summary><h4>Signature</h4></summary>
+	<dl><dt>
+					<strong>attribute</strong>　<code class="language-ruby">Hash(<a href="../Resource/index.html" title="Async::Pool::Resource">Resource</a>, Integer)</code></dt><dd><p>all allocated resources, and their associated usage.</p>
+</dd></dl>
+</details>
+</section><section id="Async::Pool::Controller#active?"><h3><code class="language-ruby">def active?</code></h3><p>Whether the pool has any active resources.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def active?
+	!@resources.empty?
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#busy?"><h3><code class="language-ruby">def busy?</code></h3><p>Whether there are resources which are currently in use.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def busy?
+	@resources.collect do |_, usage|
+		return true if usage &gt; 0
+	end
+	
+	return false
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#available?"><h3><code class="language-ruby">def available?</code></h3><p>Whether there are available resources, i.e. whether <code class="language-ruby">#acquire</code> can reuse an existing resource.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def available?
+	@available.any?
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#wait"><h3><code class="language-ruby">def wait</code></h3><p>Wait until a pool resource has been freed.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def wait
+	@notification.wait
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#release"><h3><code class="language-ruby">def release(resource)</code></h3><p>Make the resource resources and let waiting tasks know that there is something resources.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def release(resource)
+	processed = false
+	
+	# A resource that is not good should also not be reusable.
+	if resource.reusable?
+		processed = reuse(resource)
+	end
+ensure
+	retire(resource) unless processed
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#prune"><h3><code class="language-ruby">def prune(retain = 0)</code></h3><p>Retire (and close) all unused resources. If a block is provided, it should implement the desired functionality for unused resources.</p>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def prune(retain = 0)
+	unused = []
+	
+	@resources.each do |resource, usage|
+		if usage.zero?
+			unused &lt;&lt; resource
+		end
+	end
+	
+	unused.each do |resource|
+		if block_given?
+			yield resource
+		else
+			retire(resource)
+		end
+		
+		break if @resources.size &lt;= retain
+	end
+	
+	# Update availability list:
+	@available.clear
+	@resources.each do |resource, usage|
+		if usage &lt; resource.concurrency and resource.reusable?
+			@available &lt;&lt; resource
+		end
+	end
+	
+	return unused.size
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#overflowing?"><h3><code class="language-ruby">def overflowing?</code></h3><details open>
+	<summary><h4>Signature</h4></summary>
+	<dl><dt>
+					<strong>returns</strong>　<code class="language-ruby">Boolean</code></dt><dd><p>Whether the number of available resources is excessive and we should retire some.</p>
+</dd></dl>
+</details>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def overflowing?
+	if @resources.any?
+		(self.free.to_f / @resources.size) &gt; 0.5
+	end
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#create_resource"><h3><code class="language-ruby">def create_resource</code></h3><details open>
+	<summary><h4>Signature</h4></summary>
+	<dl><dt>
+					<strong>returns</strong>　<code class="language-ruby">Object</code></dt><dd><p>A new resource in a &quot;used&quot; state.</p>
+</dd></dl>
+</details>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def create_resource
+	self.start_gardener
+	
+	# This might return nil, which means creating the resource failed.
+	if resource = @constructor.call
+		@resources[resource] = 1
+		
+		# Make the resource available if it can be used multiple times:
+		if resource.concurrency &gt; 1
+			@available.push(resource)
+		end
+	end
+	
+	return resource
+end</code></pre>
+					</details></section><section id="Async::Pool::Controller#available_resource"><h3><code class="language-ruby">def available_resource</code></h3><details open>
+	<summary><h4>Signature</h4></summary>
+	<dl><dt>
+					<strong>returns</strong>　<code class="language-ruby">Object</code></dt><dd><p>An existing resource in a &quot;used&quot; state.</p>
+</dd></dl>
+</details>
+<details>
+						<summary><h4>Implementation</h4></summary>
+						<pre><code class="language-ruby">def available_resource
+	resource = nil
+	
+	@guard.acquire do
+		resource = get_resource
+	end
+	
+	return resource
+rescue Exception
+	reuse(resource) if resource
+	raise
+end</code></pre>
+					</details></section>	</section>
+	
+	
+
+				
+			<footer>Documentation generated by <a href="https://github.com/socketry/utopia-project">Utopia::Project</a>.</footer>
+		</main>
+	</body>
+</html>
+
