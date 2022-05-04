@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 require_relative "lib/async/pool/version"
 
@@ -6,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Async::Pool::VERSION
 	
 	spec.summary = "A singleplex and multiplex resource pool for implementing robust clients."
-	spec.authors = ["Samuel Williams"]
+	spec.authors = ["Samuel Williams", "Olle Jonsson", "Simon Perepelitsa"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ['release.cert']
