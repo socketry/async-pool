@@ -31,7 +31,7 @@ module Async
 				self.new(block, **options)
 			end
 			
-			def initialize(constructor, limit: nil)
+			def initialize(constructor, limit: nil, concurrency: nil)
 				# All available resources:
 				@resources = {}
 				
@@ -44,7 +44,15 @@ module Async
 				@limit = limit
 				
 				@constructor = constructor
-				@guard = Async::Semaphore.new(1)
+				
+				# Set the concurrency to be the same as the limit for maximum performance:
+				if limit
+					concurrency ||= limit
+				else
+					concurrency ||= 1
+				end
+				
+				@guard = Async::Semaphore.new(concurrency)
 				
 				@gardener = nil
 			end
@@ -203,26 +211,12 @@ module Async
 				@resources.count{|resource, usage| usage == 0}
 			end
 			
-			# @returns [Boolean] Whether the number of available resources is excessive and we should retire some.
-			def overflowing?
-				if @resources.any?
-					(self.free.to_f / @resources.size) > 0.5
-				end
-			end
-			
 			def reuse(resource)
 				Console.logger.debug(self) {"Reuse #{resource}"}
 				usage = @resources[resource]
 				
 				if usage.zero?
 					raise "Trying to reuse unacquired resource: #{resource}!"
-				end
-				
-				# We retire resources when adding to the @available list would overflow our pool:
-				if usage == 1
-					if overflowing?
-						return retire(resource)
-					end
 				end
 				
 				# If the resource was fully utilized, it now becomes available:

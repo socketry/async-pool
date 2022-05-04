@@ -68,20 +68,6 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 				subject.release(object)
 			end.to raise_exception(/unacquired resource/)
 		end
-		
-		it "will overflow after freeing 50% of resources" do
-			objects = 10.times.map do
-				subject.acquire.tap do |object|
-					allow(object).to receive(:reusable?).and_return(true)
-				end
-			end
-			
-			10.times do
-				subject.release(objects.pop)
-			end
-			
-			expect(subject.available.size).to be == 6
-		end
 	end
 	
 	describe '#prune' do

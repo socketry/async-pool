@@ -14,7 +14,7 @@ end
 
 Async do
 	progress = Console.logger.progress("Pool Usage", 10*10)
-	pool = Async::Pool::Controller.new(MyResource)
+	pool = Async::Pool::Controller.new(MyResource, concurrency: 10)
 	
 	10.times do
 		Async do
