@@ -124,19 +124,6 @@ end</code></pre>
 	
 	return unused.size
 end</code></pre>
-					</details></section><section id="Async::Pool::Controller#overflowing?"><h3><code class="language-ruby">def overflowing?</code></h3><details open>
-	<summary><h4>Signature</h4></summary>
-	<dl><dt>
-					<strong>returns</strong>　<code class="language-ruby">Boolean</code></dt><dd><p>Whether the number of available resources is excessive and we should retire some.</p>
-</dd></dl>
-</details>
-<details>
-						<summary><h4>Implementation</h4></summary>
-						<pre><code class="language-ruby">def overflowing?
-	if @resources.any?
-		(self.free.to_f / @resources.size) &gt; 0.5
-	end
-end</code></pre>
 					</details></section><section id="Async::Pool::Controller#create_resource"><h3><code class="language-ruby">def create_resource</code></h3><details open>
 	<summary><h4>Signature</h4></summary>
 	<dl><dt>
