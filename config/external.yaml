@@ -1,0 +1,3 @@
+async-http:
+  url: https://github.com/socketry/async-http
+  command: bundle exec rspec

@@ -2,7 +2,7 @@
 
 Provides support for connection pooling both singleplex and multiplex resources.
 
-[![Development Status](https://github.com/socketry/async-pool/workflows/Development/badge.svg)](https://github.com/socketry/async-pool/actions?workflow=Development)
+[![Development Status](https://github.com/socketry/async-pool/workflows/Test/badge.svg)](https://github.com/socketry/async-pool/actions?workflow=Test)
 
 ## Installation
 

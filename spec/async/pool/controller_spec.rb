@@ -165,7 +165,7 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 		end
 	end
 	
-	context "robustness", timeout: 20 do
+	context "robustness", timeout: 30 do
 		subject {described_class.new(NonblockingResource)}
 		
 		def failures(repeats: 500, time_scale: 0.001, &block)
