@@ -52,6 +52,18 @@
 <p>Please browse the <a href="source/index.html">source code index</a> or refer to the guides below.</p>
 
 
+<p><code>Async::Pool::Resource</code> is provided as an interface and to document how to use the pools. However, you wouldn't need to use this in practice and just implement the appropriate interface on your own objects.</p>
+<pre><code class="language-ruby">pool = Async::Pool::Controller.new(Async::Pool::Resource)
+
+pool.acquire do |resource|
+	# resource is implicitly released when exiting the block.
+end
+
+resource = pool.acquire
+
+# Return the resource back to the pool:
+pool.release(resource)
+</code></pre>
 </section><section id="contributing"><h2>Contributing</h2>
 <ol>
 <li>Fork it</li>

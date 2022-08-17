@@ -32,21 +32,21 @@
 	</head>
 
 	<body>
-		<header> › <a class="link" href="../../../../index.html">Project</a> › <a class="link" href="../../../index.html">Source</a></header>
+		<header> › <a class="link" href="../../../../index.html">Project</a> › <a class="link" href="../../../index.html">Source</a> › <a href="../../index.html">Async</a>  › <a href="../index.html">Pool</a>  › <a href="index.html">Resource</a> </header>
 		
 		<main>
 			
-	<h1><code class="language-ruby">Async::Pool::Resource</code></h1>
+
+	<h1>
+		<code class="language-ruby">class Resource</code>
+	</h1>
 	
 	<p>The basic interface required by a pool resource.</p>
 	
-	
-	
-	
 	<section>
-	<h2>Definitions</h2>
-	
-	<section id="Async::Pool::Resource.call"><h3><code class="language-ruby">def self.call</code></h3><p>Constructs a resource.</p>
+		<h2>Definitions</h2>
+		
+		<section id="Async::Pool::Resource.call"><h3><code class="language-ruby">def self.call</code></h3><p>Constructs a resource.</p>
 <details>
 						<summary><h4>Implementation</h4></summary>
 						<pre><code class="language-ruby">def self.call
@@ -68,10 +68,6 @@ end</code></pre>
 <details>
 						<summary><h4>Implementation</h4></summary>
 						<pre><code class="language-ruby">def close
-	if @closed
-		raise &quot;Already closed!&quot;
-	end
-	
 	@closed = true
 end</code></pre>
 					</details></section><section id="Async::Pool::Resource#reusable?"><h3><code class="language-ruby">def reusable?</code></h3><p>Whether this resource can be reused. Used when releasing resources back into the pool.</p>
@@ -81,7 +77,6 @@ end</code></pre>
 	!@closed
 end</code></pre>
 					</details></section>	</section>
-	
 	
 
 				
