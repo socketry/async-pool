@@ -5,7 +5,7 @@
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# furnished to do so, pool to the following conditions:
 # 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
@@ -18,135 +18,139 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'controller_helper'
+require 'nonblocking_resource'
+require 'sus/fixtures/async/reactor_context'
 
-RSpec.describe Async::Pool::Controller, timeout: 1 do
-	include_context Async::RSpec::Reactor
+describe Async::Pool::Controller do
+	include Sus::Fixtures::Async::ReactorContext
 	
-	subject {described_class.new(Async::Pool::Resource)}
+	let(:pool) {subject.new(Async::Pool::Resource)}
 	
-	describe '#acquire' do
+	with '#acquire' do
 		it "can allocate resources" do
-			object = subject.acquire
+			object = pool.acquire
 			
-			expect(object).to_not be_nil
-			expect(subject).to be_busy
+			expect(object).not.to be_nil
+			expect(pool).to be(:busy?)
 			
-			subject.release(object)
-			expect(subject).to_not be_busy
+			pool.release(object)
+			expect(pool).not.to be(:busy?)
 		end
 	end
 	
-	describe '#release' do
+	with '#release' do
 		it "will reuse resources" do
-			object = subject.acquire
+			object = pool.acquire
 			
 			expect(object).to receive(:reusable?).and_return(true)
 			
-			subject.release(object)
+			pool.release(object)
 			
-			expect(subject).to be_active
+			expect(pool).to be(:active?)
 		end
 		
 		it "will retire unusable resources" do
-			object = subject.acquire
+			object = pool.acquire
 			
 			expect(object).to receive(:reusable?).and_return(false)
 			
-			subject.release(object)
+			pool.release(object)
 			
-			expect(subject).to_not be_active
+			expect(pool).not.to be(:active?)
 		end
 		
 		it "will fail when releasing an unacquired resource" do
-			object = subject.acquire
-			allow(object).to receive(:reusable?).and_return(true)
+			object = pool.acquire
 			
-			subject.release(object)
+			mock(object) do |mock|
+				mock.replace(:reusable?) {true}
+			end
+			
+			pool.release(object)
 			
 			expect do
-				subject.release(object)
-			end.to raise_exception(/unacquired resource/)
+				pool.release(object)
+			end.to raise_exception(RuntimeError, message: /unacquired resource/)
 		end
 	end
 	
-	describe '#prune' do
+	with '#prune' do
 		it "can prune unused resources" do
-			subject.acquire{}
+			pool.acquire{}
 			
-			expect(subject).to be_active
+			expect(pool).to be(:active?)
 			
-			subject.prune
+			pool.prune
 			
-			expect(subject).to_not be_active
+			expect(pool).not.to be(:active?)
 		end
 	end
 	
-	describe '#close' do
+	with '#close' do
 		it "will no longer be active" do
-			object = subject.acquire
+			object = pool.acquire
 			expect(object).to receive(:reusable?).and_return(true)
-			subject.release(object)
+			pool.release(object)
 			
-			subject.close
+			pool.close
 			
-			expect(subject).to_not be_active
+			expect(pool).not.to be(:active?)
 		end
 		
 		it "should clear list of available resources" do
-			object = subject.acquire
+			object = pool.acquire
 			expect(object).to receive(:reusable?).and_return(true)
-			subject.release(object)
+			pool.release(object)
 			
-			expect(subject.available).to_not be_empty
+			expect(pool.available).not.to be(:empty?)
 			
-			subject.close
+			pool.close
 			
-			expect(subject.available).to be_empty
+			expect(pool.available).to be(:empty?)
 		end
 	end
 	
-	describe '#to_s' do
+	with '#to_s' do
 		it "can inspect empty pool" do
-			expect(subject.to_s).to match("0/∞")
+			expect(pool.to_s).to be(:match?, "0/∞")
 		end
 	end
 	
-	context "with limit" do
-		subject {described_class.new(Async::Pool::Resource, limit: 1)}
+	with 'a small limit' do
+		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
 		
-		describe '#to_s' do
+		with '#to_s' do
 			it "can inspect empty pool" do
-				expect(subject.to_s).to match("0/1")
+				expect(pool.to_s).to be(:match?, "0/1")
 			end
 		end
 		
-		describe '#acquire' do
+		with '#acquire' do
 			it "will limit allocations" do
 				state = nil
 				inner = nil
-				outer = subject.acquire
+				outer = pool.acquire
 				
 				reactor.async do
 					state = :waiting
-					inner = subject.acquire
+					inner = pool.acquire
 					state = :acquired
-					subject.release(inner)
+					pool.release(inner)
 				end
 				
-				expect(state).to be :waiting
-				subject.release(outer)
+				expect(state).to be == :waiting
+				pool.release(outer)
 				reactor.yield
-				expect(state).to be :acquired
+				expect(state).to be == :acquired
 				
-				expect(outer).to be inner
+				expect(outer).to be == inner
 			end
 		end
 	end
 	
-	context "with non-blocking connect" do
-		subject do
-			described_class.wrap do
+	with "with non-blocking connect" do
+		let(:pool) do
+			subject.wrap do
 				# Simulate a non-blocking connection:
 				Async::Task.current.sleep(0.1)
 				
@@ -154,19 +158,19 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 			end
 		end
 		
-		describe '#acquire' do
+		with '#acquire' do
 			it "can reuse resources" do
 				3.times do
-					subject.acquire{}
+					pool.acquire{}
 				end
 				
-				expect(subject.size).to be == 1
+				expect(pool.size).to be == 1
 			end
 		end
 	end
 	
-	context "robustness", timeout: 30 do
-		subject {described_class.new(NonblockingResource)}
+	with 'a busy connection pool' do
+		let(:pool) {subject.new(NonblockingResource)}
 		
 		def failures(repeats: 500, time_scale: 0.001, &block)
 			count = 0
@@ -190,35 +194,35 @@ RSpec.describe Async::Pool::Controller, timeout: 1 do
 			# pp backtraces
 		end
 		
-		it "releases resources" do
+		it "robustly releases resources" do
 			failures do
 				begin
-					resource = subject.acquire
+					resource = pool.acquire
 				ensure
-					subject.release(resource) if resource
+					pool.release(resource) if resource
 				end
 			end
 			
-			expect(subject).to_not be_busy
+			expect(pool).not.to be(:busy?)
 		end
 	end
 end
 
-RSpec.describe Async::Pool::Controller, timeout: 1 do
-	subject {described_class.new(Async::Pool::Resource)}
+describe Async::Pool::Controller do
+	let(:pool) {subject.new(Async::Pool::Resource)}
 	
-	describe '#close' do
+	with '#close' do
 		it "closes all resources when going out of scope" do
 			Async do
-				object = subject.acquire
-				expect(object).to_not be_nil
-				subject.release(object)
+				object = pool.acquire
+				expect(object).not.to be_nil
+				pool.release(object)
 				
 				# There is some resource which is still open:
-				expect(subject.resources).to_not be_empty
+				expect(pool.resources).not.to be(:empty?)
 			end
 			
-			expect(subject.resources).to be_empty
+			expect(pool.resources).to be(:empty?)
 		end
 	end
 end

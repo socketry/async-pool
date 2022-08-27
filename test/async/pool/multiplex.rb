@@ -5,7 +5,7 @@
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# furnished to do so, pool to the following conditions:
 # 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
@@ -18,56 +18,64 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'controller_helper'
+require 'nonblocking_resource'
+require 'sus/fixtures/async/reactor_context'
 
-RSpec.describe Async::Pool::Controller, timeout: 1 do
-	include_context Async::RSpec::Reactor
+describe Async::Pool::Controller do
+	include Sus::Fixtures::Async::ReactorContext
 	
 	let(:constructor) {lambda{Async::Pool::Resource.new(2)}}
-	subject {described_class.new(constructor)}
+	let(:pool) {subject.new(constructor)}
 	
-	describe '#available' do
+	with '#available' do
 		it "is initially empty" do
-			expect(subject.available).to be_empty
+			expect(pool.available).to be(:empty?)
 		end
 		
 		it "will put object in available list after one use" do
-			object = subject.acquire
-			allow(object).to receive(:reusable?).and_return(true)
+			object = pool.acquire
+			mock(object) do |mock|
+				mock.replace(:reusable?) {true}
+			end
 			
-			subject.release(object)
+			pool.release(object)
 			
-			expect(subject).to be_active
-			expect(subject.available).to be == [object]
+			expect(pool).to be(:active?)
+			expect(pool.available).to be == [object]
 		end
 		
 		it "can acquire and release the same object up to the concurrency limit" do
-			object1 = subject.acquire
-			allow(object1).to receive(:reusable?).and_return(true)
+			object1 = pool.acquire
+			mock(object1) do |mock|
+				mock.replace(:reusable?) {true}
+			end
 			
-			object2 = subject.acquire
-			expect(object2).to be_equal(object1)
+			object2 = pool.acquire
+			expect(object2).to be(:equal?, object1)
 			
-			expect(subject.available).to be_empty
+			expect(pool.available).to be(:empty?)
 			
-			subject.release(object1)
-			expect(subject.available).to be == [object1]
+			pool.release(object1)
+			expect(pool.available).to be == [object1]
 			
-			subject.release(object2)
-			expect(subject.available).to be == [object1]
+			pool.release(object2)
+			expect(pool.available).to be == [object1]
 		end
 	end
 	
-	describe '#prune' do
+	with '#prune' do
 		it "removes the item from the availabilty list when it is retired" do
-			object = subject.acquire
-			allow(object).to receive(:reusable?).and_return(false)
+			object = pool.acquire
 			
-			subject.release(object)
+			mock(object) do |mock|
+				mock.replace(:reusable?) {false}
+			end
 			
-			subject.prune
+			pool.release(object)
 			
-			expect(subject.available).to be == []
+			pool.prune
+			
+			expect(pool.available).to be == []
 		end
 	end
 end
