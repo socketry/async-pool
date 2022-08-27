@@ -187,6 +187,7 @@ describe Async::Pool::Controller do
 	
 	with 'a busy connection pool' do
 		let(:pool) {subject.new(NonblockingResource)}
+		let(:timeout) {60}
 		
 		def failures(repeats: 500, time_scale: 0.001, &block)
 			count = 0
