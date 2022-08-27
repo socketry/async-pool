@@ -108,6 +108,22 @@ describe Async::Pool::Controller do
 			
 			expect(pool.available).to be(:empty?)
 		end
+		
+		it "can acquire resource during close" do
+			object = pool.acquire
+			
+			mock(object) do |mock|
+				mock.replace(:close) do
+					pool.acquire{}
+				end
+			end
+				
+			pool.release(object)
+			
+			pool.close
+			
+			expect(pool).not.to be(:active?)
+		end
 	end
 	
 	with '#to_s' do

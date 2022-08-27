@@ -119,8 +119,15 @@ module Async
 			def close
 				@available.clear
 				
-				@resources.each_key(&:close)
-				@resources.clear
+				while pair = @resources.shift
+					resource, usage = pair
+					
+					if usage > 0
+						Console.logger.warn(self, resource: resource, usage: usage) {"Closing resource while still in use!"}
+					end
+					
+					resource.close
+				end
 				
 				@gardener&.stop
 			end
