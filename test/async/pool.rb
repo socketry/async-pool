@@ -1,0 +1,7 @@
+require 'async/pool'
+
+describe Async::Pool do
+	it "has a version number" do
+		expect(Async::Pool::VERSION).to be =~ /\d+\.\d+\.\d+/
+	end
+end

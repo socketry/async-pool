@@ -19,5 +19,4 @@
 # THE SOFTWARE.
 
 require_relative 'pool/version'
-
 require_relative 'pool/controller'
