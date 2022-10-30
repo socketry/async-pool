@@ -55,7 +55,7 @@ describe Async::Pool::Controller do
 			
 			expect do
 				pool.release(object)
-			end.to raise_exception(RuntimeError, message: /unacquired resource/)
+			end.to raise_exception(RuntimeError, message: be =~ /unacquired resource/)
 		end
 	end
 	
