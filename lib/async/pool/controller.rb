@@ -193,18 +193,18 @@ module Async
 			end
 			
 			def availability_string
-				@resources.collect do |resource,usage|
+				@resources.collect do |resource, usage|
 					"#{usage}/#{resource.concurrency}#{resource.viable? ? nil : '*'}/#{resource.count}"
 				end.join(";")
 			end
 			
-			def usage
-				@resources.count{|resource, usage| usage > 0}
-			end
-			
-			def free
-				@resources.count{|resource, usage| usage == 0}
-			end
+			# def usage
+			# 	@resources.count{|resource, usage| usage > 0}
+			# end
+			#
+			# def free
+			# 	@resources.count{|resource, usage| usage == 0}
+			# end
 			
 			def reuse(resource)
 				Console.logger.debug(self) {"Reuse #{resource}"}

@@ -11,50 +11,109 @@ describe Async::Pool::Controller do
 	
 	let(:pool) {subject.new(Async::Pool::Resource)}
 	
+	with 'an empty pool' do
+		it 'is not available?' do
+			expect(pool).not.to be(:available?)
+		end
+		
+		it 'is empty?' do
+			expect(pool).to be(:empty?)
+		end
+	end
+	
+	with 'a limited pool' do
+		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
+		
+		it 'waits to acquire' do
+			resource = pool.acquire
+			expect(resource).not.to be_nil
+			
+			task = Async do
+				pool.acquire do |another_resource|
+					expect(another_resource).to be_equal(resource)
+				end
+			end
+			
+			pool.release(resource)
+			
+			task.wait
+		end
+		
+		it 'can wait for a resource to be available' do
+			sequence = []
+			
+			resource = pool.acquire
+			expect(resource).not.to be_nil
+			
+			task = Async do
+				sequence << :wait
+				pool.wait
+				sequence << :waited
+			end
+			
+			sequence << :release
+			pool.release(resource)
+			
+			task.wait
+			expect(sequence).to be == [:wait, :release, :waited]
+		end
+	end
+	
+	with '#close' do
+		it 'closes all resources' do
+			resource = pool.acquire
+			expect(resource).not.to be_nil
+			pool.release(resource)
+			
+			pool.close
+			expect(resource).to be(:closed?)
+		end
+	end
+	
 	with '#acquire' do
 		it "can allocate resources" do
-			object = pool.acquire
+			resource = pool.acquire
 			
-			expect(object).not.to be_nil
+			expect(resource).not.to be_nil
 			expect(pool).to be(:busy?)
 			
-			pool.release(object)
+			pool.release(resource)
 			expect(pool).not.to be(:busy?)
 		end
 	end
 	
 	with '#release' do
 		it "will reuse resources" do
-			object = pool.acquire
+			resource = pool.acquire
 			
-			expect(object).to receive(:reusable?).and_return(true)
+			expect(resource).to receive(:reusable?).and_return(true)
 			
-			pool.release(object)
+			pool.release(resource)
 			
 			expect(pool).to be(:active?)
 		end
 		
 		it "will retire unusable resources" do
-			object = pool.acquire
+			resource = pool.acquire
 			
-			expect(object).to receive(:reusable?).and_return(false)
+			expect(resource).to receive(:reusable?).and_return(false)
 			
-			pool.release(object)
+			pool.release(resource)
 			
 			expect(pool).not.to be(:active?)
 		end
 		
 		it "will fail when releasing an unacquired resource" do
-			object = pool.acquire
+			resource = pool.acquire
 			
-			mock(object) do |mock|
+			mock(resource) do |mock|
 				mock.replace(:reusable?) {true}
 			end
 			
-			pool.release(object)
+			pool.release(resource)
 			
 			expect do
-				pool.release(object)
+				pool.release(resource)
 			end.to raise_exception(RuntimeError, message: be =~ /unacquired resource/)
 		end
 	end
@@ -69,13 +128,36 @@ describe Async::Pool::Controller do
 			
 			expect(pool).not.to be(:active?)
 		end
+		
+		it "can prune unused resources with a block" do
+			pool.acquire{}
+			
+			expect(pool).to be(:active?)
+			
+			pool.prune do |resource|
+				pool.retire(resource)
+				expect(resource).to be(:closed?)
+			end
+			
+			expect(pool).not.to be(:active?)
+		end
+		
+		it "can prune with in-use resources" do
+			resource = pool.acquire
+			
+			pool.prune
+			
+			pool.release(resource)
+			
+			expect(pool).to be(:available?)
+		end
 	end
 	
 	with '#close' do
 		it "will no longer be active" do
-			object = pool.acquire
-			expect(object).to receive(:reusable?).and_return(true)
-			pool.release(object)
+			resource = pool.acquire
+			expect(resource).to receive(:reusable?).and_return(true)
+			pool.release(resource)
 			
 			pool.close
 			
@@ -83,9 +165,9 @@ describe Async::Pool::Controller do
 		end
 		
 		it "should clear list of available resources" do
-			object = pool.acquire
-			expect(object).to receive(:reusable?).and_return(true)
-			pool.release(object)
+			resource = pool.acquire
+			expect(resource).to receive(:reusable?).and_return(true)
+			pool.release(resource)
 			
 			expect(pool.available).not.to be(:empty?)
 			
@@ -95,15 +177,15 @@ describe Async::Pool::Controller do
 		end
 		
 		it "can acquire resource during close" do
-			object = pool.acquire
+			resource = pool.acquire
 			
-			mock(object) do |mock|
+			mock(resource) do |mock|
 				mock.replace(:close) do
 					pool.acquire{}
 				end
 			end
 				
-			pool.release(object)
+			pool.release(resource)
 			
 			pool.close
 			
@@ -114,6 +196,11 @@ describe Async::Pool::Controller do
 	with '#to_s' do
 		it "can inspect empty pool" do
 			expect(pool.to_s).to be(:match?, "0/∞")
+		end
+		
+		it "can inspect a non-empty pool" do
+			pool.acquire
+			expect(pool.to_s).to be(:match?, "1/∞")
 		end
 	end
 	
@@ -216,9 +303,9 @@ describe Async::Pool::Controller do
 	with '#close' do
 		it "closes all resources when going out of scope" do
 			Async do
-				object = pool.acquire
-				expect(object).not.to be_nil
-				pool.release(object)
+				resource = pool.acquire
+				expect(resource).not.to be_nil
+				pool.release(resource)
 				
 				# There is some resource which is still open:
 				expect(pool.resources).not.to be(:empty?)
