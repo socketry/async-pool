@@ -62,5 +62,17 @@ describe Async::Pool::Controller do
 			
 			expect(pool.available).to be == []
 		end
+		
+		it "puts the item back into the available list if it is reusable" do
+			object = pool.acquire
+			
+			mock(object) do |mock|
+				mock.replace(:reusable?) {true}
+			end
+			
+			pool.prune
+			
+			expect(pool.available).to be == [object]
+		end
 	end
 end

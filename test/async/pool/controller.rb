@@ -80,6 +80,17 @@ describe Async::Pool::Controller do
 			pool.release(resource)
 			expect(pool).not.to be(:busy?)
 		end
+		
+		it "retires resources if they are no longer viable" do
+			resource = pool.acquire
+			pool.release(resource)
+			
+			expect(resource).to receive(:viable?).and_return(false)
+			
+			pool.acquire do |another_resource|
+				expect(another_resource).not.to be_equal(resource)
+			end
+		end
 	end
 	
 	with '#release' do
@@ -115,6 +126,21 @@ describe Async::Pool::Controller do
 			expect do
 				pool.release(resource)
 			end.to raise_exception(RuntimeError, message: be =~ /unacquired resource/)
+		end
+	end
+	
+	with '#retire' do
+		it "can retire a resource at any time" do
+			resource = pool.acquire
+			pool.release(resource)
+			
+			pool.retire(resource)
+			expect(pool).to be(:available?)
+			
+			# Acquiring a resource should not return the retired resource:
+			pool.acquire do |another_resource|
+				expect(another_resource).not.to be_equal(resource)
+			end
 		end
 	end
 	
