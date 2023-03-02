@@ -247,6 +247,14 @@ describe Async::Pool::Controller do
 			
 			expect(pool).not.to be(:active?)
 		end
+		
+		it "warns if closing while a resource is acquired" do
+			pool.acquire
+			
+			expect(Console.logger).to receive(:warn).and_return(nil)
+			
+			pool.close
+		end
 	end
 	
 	with '#to_s' do
