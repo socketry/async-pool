@@ -17,7 +17,16 @@ module Async
 				self.new(block, **options)
 			end
 			
-			def initialize(constructor, limit: nil, concurrency: nil)
+			def initialize(constructor, limit: nil, concurrency: (limit || 1), policy: nil)
+				@constructor = constructor
+				@limit = limit
+				
+				# This semaphore is used to limit the number of concurrent tasks which are creating new resources.
+				@guard = Async::Semaphore.new(concurrency)
+				
+				@policy = policy
+				@gardener = nil
+				
 				# All available resources:
 				@resources = {}
 				
@@ -25,23 +34,27 @@ module Async
 				# This list may contain false positives, or resources which were okay but have since entered a state which is unusuable.
 				@available = []
 				
+				# Used to signal when a resource has been released:
 				@notification = Async::Notification.new
-				
-				@limit = limit
-				
-				@constructor = constructor
-				
-				# Set the concurrency to be the same as the limit for maximum performance:
-				if limit
-					concurrency ||= limit
-				else
-					concurrency ||= 1
-				end
-				
-				@guard = Async::Semaphore.new(concurrency)
-				
-				@gardener = nil
 			end
+			
+			# @attribute [Proc] The constructor used to create new resources.
+			attr :constructor
+			
+			# @attribute [Integer] The maximum number of resources that this pool can have at any given time.
+			attr_accessor :limit
+			
+			# @attribute [Integer] The maximum number of concurrent tasks that can be creating a new resource.
+			def concurrency
+				@guard.limit
+			end
+			
+			def concurrency= value
+				@guard.limit = value
+			end
+			
+			# @attribute [Policy] The pool policy.
+			attr_accessor :policy
 			
 			# @attribute [Hash(Resource, Integer)] all allocated resources, and their associated usage.
 			attr :resources
@@ -98,6 +111,8 @@ module Async
 				if resource.reusable?
 					processed = reuse(resource)
 				end
+				
+				# @policy.released(self, resource)
 			ensure
 				retire(resource) unless processed
 			end
@@ -181,7 +196,15 @@ module Async
 				Async(transient: true, annotation: "#{self.class} Gardener") do |task|
 					@gardener = task
 					
-					Task.yield
+					while true
+						if @policy
+							@policy.call(self)
+						else
+							Task.yield
+						end
+						
+						self.wait
+					end
 				ensure
 					@gardener = nil
 					self.close
@@ -255,6 +278,8 @@ module Async
 					end
 				end
 				
+				# @policy.created(self, resource)
+				
 				return resource
 			end
 			
@@ -272,7 +297,9 @@ module Async
 				raise
 			end
 			
-			private def get_resource
+			private
+			
+			def get_resource
 				while resource = @available.last
 					if usage = @resources[resource] and usage < resource.concurrency
 						if resource.viable?

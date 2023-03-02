@@ -59,6 +59,36 @@ describe Async::Pool::Controller do
 		end
 	end
 	
+	with '#concurrency' do
+		it "adjust the concurrency limit" do
+			expect(pool.concurrency).to be == 1
+			
+			pool.concurrency = 2
+			expect(pool.concurrency).to be == 2
+		end
+	end
+	
+	with 'policy' do
+		let(:policy) {proc{|pool| pool.prune(2)}}
+		let(:pool) {subject.new(Async::Pool::Resource, policy: policy)}
+		
+		it "can execute a policy" do
+			resources = 4.times.map do
+				pool.acquire
+			end
+			
+			resources.each do |resource|
+				pool.release(resource)
+			end
+			
+			Async::Task.current.sleep(0.001)
+			
+			expect(pool.available).to have_attributes(
+				size: be == 2
+			)
+		end
+	end
+	
 	with '#close' do
 		it 'closes all resources' do
 			resource = pool.acquire
@@ -217,6 +247,14 @@ describe Async::Pool::Controller do
 			
 			expect(pool).not.to be(:active?)
 		end
+		
+		it "warns if closing while a resource is acquired" do
+			pool.acquire
+			
+			expect(Console.logger).to receive(:warn).and_return(nil)
+			
+			pool.close
+		end
 	end
 	
 	with '#to_s' do
@@ -225,8 +263,9 @@ describe Async::Pool::Controller do
 		end
 		
 		it "can inspect a non-empty pool" do
-			pool.acquire
-			expect(pool.to_s).to be(:match?, "1/∞")
+			pool.acquire do
+				expect(pool.to_s).to be(:match?, "1/∞")
+			end
 		end
 	end
 	
