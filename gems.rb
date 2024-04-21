@@ -14,4 +14,3 @@ group :maintenance, optional: true do
 	gem "utopia-project"
 	gem "bake-github-pages"
 end
-
