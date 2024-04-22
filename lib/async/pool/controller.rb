@@ -169,10 +169,12 @@ module Async
 				
 				# It's okay for this to context switch:
 				unused.each do |resource|
-					if block_given?
-						yield resource
-					else
-						retire(resource)
+					if usage = @resources[resource] and usage.zero?
+						if block_given?
+							yield resource
+						else
+							retire(resource)
+						end
 					end
 					
 					break if @resources.size <= retain
