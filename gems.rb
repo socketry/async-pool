@@ -14,3 +14,12 @@ group :maintenance, optional: true do
 	gem "utopia-project"
 	gem "bake-github-pages"
 end
+
+group :test do
+	gem "sus", "~> 0.15"
+	gem "sus-fixtures-async"
+	gem "covered"
+	
+	gem "bake-test"
+	gem "bake-test-external"
+end

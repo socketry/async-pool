@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Async::Pool::VERSION
 	
 	spec.summary = "A singleplex and multiplex resource pool for implementing robust clients."
-	spec.authors = ["Samuel Williams", "Olle Jonsson", "Simon Perepelitsa"]
+	spec.authors = ["Samuel Williams", "Olle Jonsson", "Simon Perepelitsa", "Thomas Morgan"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ['release.cert']
@@ -16,19 +16,14 @@ Gem::Specification.new do |spec|
 	spec.homepage = "https://github.com/socketry/async-pool"
 	
 	spec.metadata = {
+		"documentation_uri" => "https://socketry.github.io/async-pool/",
 		"funding_uri" => "https://github.com/sponsors/ioquatix/",
+		"source_code_uri" => "https://github.com/socketry/async-pool.git",
 	}
 	
 	spec.files = Dir.glob(['{lib}/**/*', '*.md'], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 2.5"
+	spec.required_ruby_version = ">= 3.1"
 	
 	spec.add_dependency "async", ">= 1.25"
-	
-	spec.add_development_dependency "bake-test"
-	spec.add_development_dependency "bake-test-external"
-	spec.add_development_dependency "bundler"
-	spec.add_development_dependency "covered"
-	spec.add_development_dependency "sus", "~> 0.15"
-	spec.add_development_dependency "sus-fixtures-async"
 end
