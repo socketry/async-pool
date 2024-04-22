@@ -19,6 +19,21 @@ describe Async::Pool::Controller do
 		it 'is empty?' do
 			expect(pool).to be(:empty?)
 		end
+		
+		with '#as_json' do
+			it 'generates a JSON representation' do
+				expect(pool.as_json).to be == {
+					limit: nil,
+					concurrency: 1,
+					usage: 0,
+					availability_summary: []
+				}
+			end
+			
+			it "generates a JSON string" do
+				expect(JSON.dump(pool)).to be == pool.to_json
+			end
+		end
 	end
 	
 	with 'a limited pool' do

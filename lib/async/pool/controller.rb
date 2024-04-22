@@ -44,6 +44,27 @@ module Async
 			# @attribute [Integer] The maximum number of resources that this pool can have at any given time.
 			attr_accessor :limit
 			
+			def to_s
+				if @resources.empty?
+					"\#<#{self.class}(#{usage_string})>"
+				else
+					"\#<#{self.class}(#{usage_string}) #{availability_summary.join(';')}>"
+				end
+			end
+			
+			def as_json(...)
+				{
+					limit: @limit,
+					concurrency: @guard.limit,
+					usage: @resources.size,
+					availability_summary: self.availability_summary,
+				}
+			end
+			
+			def to_json(...)
+				as_json.to_json(...)
+			end
+			
 			# @attribute [Integer] The maximum number of concurrent tasks that can be creating a new resource.
 			def concurrency
 				@guard.limit
@@ -133,14 +154,6 @@ module Async
 				@gardener&.stop
 			end
 			
-			def to_s
-				if @resources.empty?
-					"\#<#{self.class}(#{usage_string})>"
-				else
-					"\#<#{self.class}(#{usage_string}) #{availability_string}>"
-				end
-			end
-			
 			# Retire (and close) all unused resources. If a block is provided, it should implement the desired functionality for unused resources.
 			# @param retain [Integer] the minimum number of resources to retain.
 			# @yield resource [Resource] unused resources.
@@ -215,10 +228,10 @@ module Async
 				"#{@resources.size}/#{@limit || '∞'}"
 			end
 			
-			def availability_string
+			def availability_summary
 				@resources.collect do |resource, usage|
 					"#{usage}/#{resource.concurrency}#{resource.viable? ? nil : '*'}/#{resource.count}"
-				end.join(";")
+				end
 			end
 			
 			# def usage
