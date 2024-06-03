@@ -6,6 +6,8 @@
 require 'nonblocking_resource'
 require 'sus/fixtures/async/reactor_context'
 
+require 'set'
+
 describe Async::Pool::Controller do
 	include Sus::Fixtures::Async::ReactorContext
 	
