@@ -75,4 +75,21 @@ describe Async::Pool::Controller do
 			end
 		end
 	end
+	
+	with 'slow constructor' do
+		let(:constructor) {lambda{sleep 0.001; Async::Pool::Resource.new(2)}}
+		
+		it "correctly acquires two resources" do
+			object1 = pool.acquire
+			object2 = pool.acquire
+			object3 = pool.acquire
+			
+			expect(object1).to be_equal(object2)
+			expect(object1).not.to be_equal(object3)
+			
+			pool.release(object1)
+			pool.release(object2)
+			pool.release(object3)
+		end
+	end
 end
