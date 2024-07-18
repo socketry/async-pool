@@ -17,6 +17,9 @@ module Async
 				self.new
 			end
 			
+			# Create a new resource.
+			#
+			# @parameter concurrency [Integer] The concurrency of this resource.
 			def initialize(concurrency = 1)
 				@concurrency = concurrency
 				@closed = false

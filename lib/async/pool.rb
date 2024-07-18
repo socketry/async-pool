@@ -5,3 +5,10 @@
 
 require_relative 'pool/version'
 require_relative 'pool/controller'
+
+# @namespace
+module Async
+	# @namespace
+	module Pool
+	end
+end

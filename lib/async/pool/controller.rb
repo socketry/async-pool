@@ -13,11 +13,19 @@ require 'async/semaphore'
 
 module Async
 	module Pool
+		# A resource pool controller.
 		class Controller
+			# Create a new resource pool, using the given block to create new resources.
 			def self.wrap(**options, &block)
 				self.new(block, **options)
 			end
 			
+			# Create a new resource pool.
+			#
+			# @parameter constructor [Proc] A block which creates a new resource.
+			# @parameter limit [Integer | Nil] The maximum number of resources that this pool can have at any given time. If nil, the pool can have an unlimited number of resources.
+			# @parameter concurrency [Integer] The maximum number of concurrent tasks that can be creating a new resource.
+			# @parameter policy [Policy] The pool policy.
 			def initialize(constructor, limit: nil, concurrency: (limit || 1), policy: nil)
 				@constructor = constructor
 				@limit = limit
@@ -45,6 +53,7 @@ module Async
 			# @attribute [Integer] The maximum number of resources that this pool can have at any given time.
 			attr_accessor :limit
 			
+			# Generate a human-readable representation of the pool.
 			def to_s
 				if @resources.empty?
 					"\#<#{self.class}(#{usage_string})>"
@@ -53,6 +62,7 @@ module Async
 				end
 			end
 			
+			# Generate a JSON representation of the pool.
 			def as_json(...)
 				{
 					limit: @limit,
@@ -62,6 +72,7 @@ module Async
 				}
 			end
 			
+			# Generate a JSON representation of the pool.
 			def to_json(...)
 				as_json.to_json(...)
 			end
@@ -71,6 +82,7 @@ module Async
 				@guard.limit
 			end
 			
+			# Set the maximum number of concurrent tasks that can be creating a new resource.
 			def concurrency= value
 				@guard.limit = value
 			end
@@ -81,6 +93,7 @@ module Async
 			# @attribute [Hash(Resource, Integer)] all allocated resources, and their associated usage.
 			attr :resources
 			
+			# The number of resources in the pool.
 			def size
 				@resources.size
 			end
@@ -109,10 +122,12 @@ module Async
 				@notification.wait
 			end
 			
+			# Whether the pool is empty.
 			def empty?
 				@resources.empty?
 			end
 			
+			# Acquire a resource from the pool. If a block is provided, the resource will be released after the block has been executed.
 			def acquire
 				resource = wait_for_resource
 				
@@ -139,6 +154,7 @@ module Async
 				retire(resource) unless processed
 			end
 			
+			# Close all resources in the pool.
 			def close
 				@available.clear
 				
@@ -146,7 +162,7 @@ module Async
 					resource, usage = pair
 					
 					if usage > 0
-						Console.logger.warn(self, resource: resource, usage: usage) {"Closing resource while still in use!"}
+						Console.warn(self, resource: resource, usage: usage) {"Closing resource while still in use!"}
 					end
 					
 					resource.close
@@ -156,8 +172,8 @@ module Async
 			end
 			
 			# Retire (and close) all unused resources. If a block is provided, it should implement the desired functionality for unused resources.
-			# @param retain [Integer] the minimum number of resources to retain.
-			# @yield resource [Resource] unused resources.
+			# @parameter retain [Integer] the minimum number of resources to retain.
+			# @yields {|resource| ...} Any unused resource.
 			def prune(retain = 0)
 				unused = []
 				
@@ -190,8 +206,9 @@ module Async
 				return unused.size
 			end
 			
+			# Retire a specific resource.
 			def retire(resource)
-				Console.logger.debug(self) {"Retire #{resource}"}
+				Console.debug(self) {"Retire #{resource}"}
 				
 				@resources.delete(resource)
 				
@@ -244,7 +261,7 @@ module Async
 			# end
 			
 			def reuse(resource)
-				Console.logger.debug(self) {"Reuse #{resource}"}
+				Console.debug(self) {"Reuse #{resource}"}
 				usage = @resources[resource]
 				
 				if usage.zero?
@@ -269,7 +286,7 @@ module Async
 					@notification.wait
 				end
 				
-				Console.logger.debug(self) {"Wait for resource -> #{resource}"}
+				Console.debug(self) {"Wait for resource -> #{resource}"}
 				
 				# if resource.concurrency > 1
 				# 	@notification.signal
@@ -336,7 +353,7 @@ module Async
 				end
 				
 				if @limit.nil? or @resources.size < @limit
-					Console.logger.debug(self) {"No available resources, allocating new one..."}
+					Console.debug(self) {"No available resources, allocating new one..."}
 					
 					return create_resource
 				end
