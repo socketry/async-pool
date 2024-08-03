@@ -264,7 +264,7 @@ module Async
 				Console.debug(self) {"Reuse #{resource}"}
 				usage = @resources[resource]
 				
-				if usage.zero?
+				if usage.nil? || usage.zero?
 					raise "Trying to reuse unacquired resource: #{resource}!"
 				end
 				

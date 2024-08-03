@@ -22,6 +22,14 @@ describe Async::Pool::Controller do
 			expect(pool).to be(:empty?)
 		end
 		
+		it 'raises an error when releasing an unacquired resource' do
+			resource = Async::Pool::Resource.new
+			
+			expect do
+				pool.release(resource)
+			end.to raise_exception(RuntimeError, message: be =~ /unacquired resource/)
+		end
+		
 		with '#as_json' do
 			it 'generates a JSON representation' do
 				expect(pool.as_json).to be == {
