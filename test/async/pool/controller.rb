@@ -273,20 +273,18 @@ describe Async::Pool::Controller do
 			expect(pool).not.to be(:active?)
 		end
 		
-		it "warns if closing while a resource is acquired" do
+		it "waits for connection to be released" do
 			events = []
 			
+			events << :acquire
+			resource = pool.acquire
+			
 			child = Async do |task|
-				events << :acquire
-				resource = pool.acquire
-				
-				sleep 0.1
+				task.yield
 				
 				events << :release
 				pool.release(resource)
 			end
-			
-			sleep 0.1
 			
 			events << :close
 			pool.close
