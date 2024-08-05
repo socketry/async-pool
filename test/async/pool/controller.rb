@@ -274,11 +274,27 @@ describe Async::Pool::Controller do
 		end
 		
 		it "warns if closing while a resource is acquired" do
-			pool.acquire
+			events = []
 			
-			expect(Console).to receive(:warn).and_return(nil)
+			child = Async do |task|
+				events << :acquire
+				resource = pool.acquire
+				
+				sleep 0.1
+				
+				events << :release
+				pool.release(resource)
+			end
 			
+			sleep 0.1
+			
+			events << :close
 			pool.close
+			events << :closed
+			
+			child.wait
+			
+			expect(events).to be == [:acquire, :close, :release, :closed]
 		end
 	end
 	
