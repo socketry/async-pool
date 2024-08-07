@@ -154,20 +154,18 @@ module Async
 				retire(resource) unless processed
 			end
 			
+			private def drain
+				# Enumerate all existing resources and retire them:
+				while resource = acquire_existing_resource
+					retire(resource)
+				end
+			end
+			
 			# Close all resources in the pool.
 			def close
+				self.drain
+				
 				@available.clear
-				
-				while pair = @resources.shift
-					resource, usage = pair
-					
-					if usage > 0
-						Console.warn(self, resource: resource, usage: usage) {"Closing resource while still in use!"}
-					end
-					
-					resource.close
-				end
-				
 				@gardener&.stop
 			end
 			
@@ -223,6 +221,8 @@ module Async
 			
 			def start_gardener
 				return if @gardener
+				
+				@gardener = true
 				
 				Async(transient: true, annotation: "#{self.class} Gardener") do |task|
 					@gardener = task
@@ -319,7 +319,7 @@ module Async
 				resource = nil
 				
 				@guard.acquire do
-					resource = get_resource
+					resource = acquire_or_create_resource
 				end
 				
 				return resource
@@ -330,7 +330,24 @@ module Async
 			
 			private
 			
-			def get_resource
+			# Acquire an existing resource with zero usage.
+			# If there are resources that are in use, wait until they are released.
+			def acquire_existing_resource
+				while @resources.any?
+					@resources.each do |resource, usage|
+						if usage == 0
+							return resource
+						end
+					end
+					
+					@notification.wait
+				end
+				
+				# Only when the pool has been completely drained, return nil:
+				return nil
+			end
+			
+			def acquire_or_create_resource
 				while resource = @available.last
 					if usage = @resources[resource] and usage < resource.concurrency
 						if resource.viable?
