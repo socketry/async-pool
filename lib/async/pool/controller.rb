@@ -154,7 +154,7 @@ module Async
 				retire(resource) unless processed
 			end
 			
-			def drain
+			private def drain
 				# Enumerate all existing resources and retire them:
 				while resource = acquire_existing_resource
 					retire(resource)
