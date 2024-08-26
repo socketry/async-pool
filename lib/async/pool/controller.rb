@@ -11,6 +11,9 @@ require 'async'
 require 'async/notification'
 require 'async/semaphore'
 
+require 'traces'
+require 'metrics'
+
 module Async
 	module Pool
 		# A resource pool controller.
@@ -154,7 +157,9 @@ module Async
 				retire(resource) unless processed
 			end
 			
-			private def drain
+			def drain
+				Console.debug(self, "Draining pool...", size: @resources.size)
+				
 				# Enumerate all existing resources and retire them:
 				while resource = acquire_existing_resource
 					retire(resource)
@@ -262,6 +267,7 @@ module Async
 			
 			def reuse(resource)
 				Console.debug(self) {"Reuse #{resource}"}
+				
 				usage = @resources[resource]
 				
 				if usage.nil? || usage.zero?
@@ -286,11 +292,7 @@ module Async
 					@notification.wait
 				end
 				
-				Console.debug(self) {"Wait for resource -> #{resource}"}
-				
-				# if resource.concurrency > 1
-				# 	@notification.signal
-				# end
+				# Be careful not to context switch or fail here.
 				
 				return resource
 			end
@@ -318,12 +320,16 @@ module Async
 			def available_resource
 				resource = nil
 				
+				Console.debug(self, "Acquiring concurrency guard...", blocking: @guard.blocking?)
+				
 				@guard.acquire do
+					Console.debug(self, "Acquired concurrency guard.")
+					
 					resource = acquire_or_create_resource
 				end
 				
 				return resource
-			rescue Exception
+			rescue Exception => error
 				reuse(resource) if resource
 				raise
 			end
@@ -373,6 +379,50 @@ module Async
 					Console.debug(self) {"No available resources, allocating new one..."}
 					
 					return create_resource
+				end
+			end
+			
+			Traces::Provider(self) do
+				def create_resource(...)
+					attributes = {
+						concurrency: @guard.limit,
+						size: @resources.size,
+						limit: @limit,
+					}
+					
+					Traces.trace('async.pool.create', attributes: attributes) {super}
+				end
+				
+				def drain(...)
+					attributes = {
+						size: @resources.size,
+					}
+					
+					Traces.trace('async.pool.drain', attributes: attributes) {super}
+				end
+			end
+			
+			Metrics::Provider(self) do
+				ACQUIRE_COUNT = Metrics.metric('async.pool.acquire', :counter, description: 'Number of times a resource was invoked.')
+				RELEASE_COUNT = Metrics.metric('async.pool.release', :counter, description: 'Number of times a resource was released.')
+				RETIRE_COUNT = Metrics.metric('async.pool.retire', :counter, description: 'Number of times a resource was retired.')
+				
+				def acquire(...)
+					ACQUIRE_COUNT.emit(1)
+					
+					super
+				end
+				
+				def release(...)
+					super.tap do
+						RELEASE_COUNT.emit(1)
+					end
+				end
+				
+				def retire(...)
+					super.tap do
+						RETIRE_COUNT.emit(1)
+					end
 				end
 			end
 		end
