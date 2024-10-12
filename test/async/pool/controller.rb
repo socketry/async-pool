@@ -46,6 +46,14 @@ describe Async::Pool::Controller do
 		end
 	end
 	
+	with "tags" do
+		let(:pool) {subject.new(Async::Pool::Resource, tags: {a: 1, b: 2})}
+		
+		it "can assign tags to the pool" do
+			expect(pool.tags).to be == ["a:1", "b:2"]
+		end
+	end
+	
 	with 'a limited pool' do
 		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
 		

@@ -29,7 +29,7 @@ module Async
 			# @parameter limit [Integer | Nil] The maximum number of resources that this pool can have at any given time. If nil, the pool can have an unlimited number of resources.
 			# @parameter concurrency [Integer] The maximum number of concurrent tasks that can be creating a new resource.
 			# @parameter policy [Policy] The pool policy.
-			def initialize(constructor, limit: nil, concurrency: (limit || 1), policy: nil)
+			def initialize(constructor, limit: nil, concurrency: (limit || 1), policy: nil, tags: nil)
 				@constructor = constructor
 				@limit = limit
 				
@@ -38,6 +38,8 @@ module Async
 				
 				@policy = policy
 				@gardener = nil
+				
+				@tags = Metrics::Tags.normalize(tags)
 				
 				# All available resources:
 				@resources = {}
@@ -95,6 +97,9 @@ module Async
 			
 			# @attribute [Hash(Resource, Integer)] all allocated resources, and their associated usage.
 			attr :resources
+			
+			# @attribute [Array(String)] The name of the pool.
+			attr_accessor :tags
 			
 			# The number of resources in the pool.
 			def size
@@ -388,6 +393,7 @@ module Async
 						concurrency: @guard.limit,
 						size: @resources.size,
 						limit: @limit,
+						tags: @tags,
 					}
 					
 					Traces.trace('async.pool.create', attributes: attributes) {super}
@@ -396,6 +402,7 @@ module Async
 				def drain(...)
 					attributes = {
 						size: @resources.size,
+						tags: @tags,
 					}
 					
 					Traces.trace('async.pool.drain', attributes: attributes) {super}
@@ -408,20 +415,20 @@ module Async
 				RETIRE_COUNT = Metrics.metric('async.pool.retire', :counter, description: 'Number of times a resource was retired.')
 				
 				def acquire(...)
-					ACQUIRE_COUNT.emit(1)
+					ACQUIRE_COUNT.emit(1, tags: @tags)
 					
 					super
 				end
 				
 				def release(...)
 					super.tap do
-						RELEASE_COUNT.emit(1)
+						RELEASE_COUNT.emit(1, tags: @tags)
 					end
 				end
 				
 				def retire(...)
 					super.tap do
-						RETIRE_COUNT.emit(1)
+						RETIRE_COUNT.emit(1, tags: @tags)
 					end
 				end
 			end
