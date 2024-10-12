@@ -3,8 +3,8 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require 'nonblocking_resource'
-require 'sus/fixtures/async/reactor_context'
+require "nonblocking_resource"
+require "sus/fixtures/async/reactor_context"
 
 describe Async::Pool::Controller do
 	include Sus::Fixtures::Async::ReactorContext
@@ -12,7 +12,7 @@ describe Async::Pool::Controller do
 	let(:constructor) {lambda{Async::Pool::Resource.new(2)}}
 	let(:pool) {subject.new(constructor)}
 	
-	with '#available' do
+	with "#available" do
 		it "is initially empty" do
 			expect(pool.available).to be(:empty?)
 		end
@@ -48,7 +48,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#prune' do
+	with "#prune" do
 		it "removes the item from the availabilty list when it is retired" do
 			object = pool.acquire
 			
@@ -76,7 +76,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with 'slow constructor' do
+	with "slow constructor" do
 		let(:constructor) {lambda{sleep 0.001; Async::Pool::Resource.new(2)}}
 		
 		it "correctly acquires two resources" do

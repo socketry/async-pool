@@ -3,11 +3,11 @@
 # Released under the MIT License.
 # Copyright, 2024, by Samuel Williams.
 
-require 'async/pool/controller'
-require 'async/pool/resource'
-require 'async/queue'
+require "async/pool/controller"
+require "async/pool/resource"
+require "async/queue"
 
-require 'sus/fixtures/async/reactor_context'
+require "sus/fixtures/async/reactor_context"
 
 describe Async::Pool::Controller do
 	include Sus::Fixtures::Async::ReactorContext

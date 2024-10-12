@@ -3,10 +3,10 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require 'console/logger'
+require "console/logger"
 
-require 'async/notification'
-require 'async/semaphore'
+require "async/notification"
+require "async/semaphore"
 
 module Async
 	module Pool

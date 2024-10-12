@@ -5,14 +5,14 @@
 # Copyright, 2020, by Simon Perepelitsa.
 # Copyright, 2024, by Thomas Morgan.
 
-require 'console/logger'
+require "console/logger"
 
-require 'async'
-require 'async/notification'
-require 'async/semaphore'
+require "async"
+require "async/notification"
+require "async/semaphore"
 
-require 'traces'
-require 'metrics'
+require "traces"
+require "metrics"
 
 module Async
 	module Pool
@@ -396,7 +396,7 @@ module Async
 						tags: @tags,
 					}
 					
-					Traces.trace('async.pool.create', attributes: attributes) {super}
+					Traces.trace("async.pool.create", attributes: attributes) {super}
 				end
 				
 				def drain(...)
@@ -405,14 +405,14 @@ module Async
 						tags: @tags,
 					}
 					
-					Traces.trace('async.pool.drain', attributes: attributes) {super}
+					Traces.trace("async.pool.drain", attributes: attributes) {super}
 				end
 			end
 			
 			Metrics::Provider(self) do
-				ACQUIRE_COUNT = Metrics.metric('async.pool.acquire', :counter, description: 'Number of times a resource was invoked.')
-				RELEASE_COUNT = Metrics.metric('async.pool.release', :counter, description: 'Number of times a resource was released.')
-				RETIRE_COUNT = Metrics.metric('async.pool.retire', :counter, description: 'Number of times a resource was retired.')
+				ACQUIRE_COUNT = Metrics.metric("async.pool.acquire", :counter, description: "Number of times a resource was invoked.")
+				RELEASE_COUNT = Metrics.metric("async.pool.release", :counter, description: "Number of times a resource was released.")
+				RETIRE_COUNT = Metrics.metric("async.pool.retire", :counter, description: "Number of times a resource was retired.")
 				
 				def acquire(...)
 					ACQUIRE_COUNT.emit(1, tags: @tags)

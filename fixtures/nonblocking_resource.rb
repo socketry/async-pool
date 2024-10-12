@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2021-2023, by Samuel Williams.
+# Copyright, 2021-2024, by Samuel Williams.
 
-require 'async/pool/controller'
-require 'async/pool/resource'
+require "async/pool/controller"
+require "async/pool/resource"
 
 class Async::Pool::Controller
 	attr :available

@@ -3,26 +3,26 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require 'nonblocking_resource'
-require 'sus/fixtures/async/reactor_context'
+require "nonblocking_resource"
+require "sus/fixtures/async/reactor_context"
 
-require 'set'
+require "set"
 
 describe Async::Pool::Controller do
 	include Sus::Fixtures::Async::ReactorContext
 	
 	let(:pool) {subject.new(Async::Pool::Resource)}
 	
-	with 'an empty pool' do
-		it 'is not available?' do
+	with "an empty pool" do
+		it "is not available?" do
 			expect(pool).not.to be(:available?)
 		end
 		
-		it 'is empty?' do
+		it "is empty?" do
 			expect(pool).to be(:empty?)
 		end
 		
-		it 'raises an error when releasing an unacquired resource' do
+		it "raises an error when releasing an unacquired resource" do
 			resource = Async::Pool::Resource.new
 			
 			expect do
@@ -30,8 +30,8 @@ describe Async::Pool::Controller do
 			end.to raise_exception(RuntimeError, message: be =~ /unacquired resource/)
 		end
 		
-		with '#as_json' do
-			it 'generates a JSON representation' do
+		with "#as_json" do
+			it "generates a JSON representation" do
 				expect(pool.as_json).to be == {
 					limit: nil,
 					concurrency: 1,
@@ -54,10 +54,10 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with 'a limited pool' do
+	with "a limited pool" do
 		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
 		
-		it 'waits to acquire' do
+		it "waits to acquire" do
 			resource = pool.acquire
 			expect(resource).not.to be_nil
 			
@@ -72,7 +72,7 @@ describe Async::Pool::Controller do
 			task.wait
 		end
 		
-		it 'can wait for a resource to be available' do
+		it "can wait for a resource to be available" do
 			sequence = []
 			
 			resource = pool.acquire
@@ -92,7 +92,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#concurrency' do
+	with "#concurrency" do
 		it "adjust the concurrency limit" do
 			expect(pool.concurrency).to be == 1
 			
@@ -101,7 +101,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with 'policy' do
+	with "policy" do
 		let(:policy) {proc{|pool| pool.prune(2)}}
 		let(:pool) {subject.new(Async::Pool::Resource, policy: policy)}
 		
@@ -122,8 +122,8 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#close' do
-		it 'closes all resources' do
+	with "#close" do
+		it "closes all resources" do
 			resource = pool.acquire
 			expect(resource).not.to be_nil
 			pool.release(resource)
@@ -133,7 +133,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#acquire' do
+	with "#acquire" do
 		it "can allocate resources" do
 			resource = pool.acquire
 			
@@ -156,7 +156,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#release' do
+	with "#release" do
 		it "will reuse resources" do
 			resource = pool.acquire
 			
@@ -192,7 +192,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#retire' do
+	with "#retire" do
 		it "can retire a resource at any time" do
 			resource = pool.acquire
 			pool.release(resource)
@@ -207,7 +207,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#prune' do
+	with "#prune" do
 		it "can prune unused resources" do
 			pool.acquire{}
 			
@@ -242,7 +242,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#close' do
+	with "#close" do
 		it "will no longer be active" do
 			resource = pool.acquire
 			expect(resource).to receive(:reusable?).and_return(true)
@@ -304,7 +304,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with '#to_s' do
+	with "#to_s" do
 		it "can inspect empty pool" do
 			expect(pool.to_s).to be(:match?, "0/∞")
 		end
@@ -316,16 +316,16 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with 'a small limit' do
+	with "a small limit" do
 		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
 		
-		with '#to_s' do
+		with "#to_s" do
 			it "can inspect empty pool" do
 				expect(pool.to_s).to be(:match?, "0/1")
 			end
 		end
 		
-		with '#acquire' do
+		with "#acquire" do
 			it "will limit allocations" do
 				state = nil
 				inner = nil
@@ -358,7 +358,7 @@ describe Async::Pool::Controller do
 			end
 		end
 		
-		with '#acquire' do
+		with "#acquire" do
 			it "can reuse resources" do
 				3.times do
 					pool.acquire{}
@@ -369,7 +369,7 @@ describe Async::Pool::Controller do
 		end
 	end
 	
-	with 'a busy connection pool' do
+	with "a busy connection pool" do
 		let(:pool) {subject.new(NonblockingResource)}
 		let(:timeout) {60}
 		
@@ -412,7 +412,7 @@ end
 describe Async::Pool::Controller do
 	let(:pool) {subject.new(Async::Pool::Resource)}
 	
-	with '#close' do
+	with "#close" do
 		it "closes all resources when going out of scope" do
 			Async do
 				resource = pool.acquire
