@@ -12,7 +12,6 @@ require "async/notification"
 require "async/semaphore"
 
 require "traces"
-require "metrics"
 
 module Async
 	module Pool
@@ -39,7 +38,7 @@ module Async
 				@policy = policy
 				@gardener = nil
 				
-				@tags = Metrics::Tags.normalize(tags)
+				@tags = tags
 				
 				# All available resources:
 				@resources = {}
@@ -393,43 +392,58 @@ module Async
 						concurrency: @guard.limit,
 						size: @resources.size,
 						limit: @limit,
-						tags: @tags,
 					}
 					
-					Traces.trace("async.pool.create", attributes: attributes) {super}
+					@attributes.merge!(@tags) if @tags
+					
+					Traces.trace('async.pool.create', attributes: attributes) {super}
 				end
 				
 				def drain(...)
 					attributes = {
 						size: @resources.size,
-						tags: @tags,
 					}
 					
-					Traces.trace("async.pool.drain", attributes: attributes) {super}
+					@attributes.merge!(@tags) if @tags
+					
+					Traces.trace('async.pool.drain', attributes: attributes) {super}
 				end
-			end
-			
-			Metrics::Provider(self) do
-				ACQUIRE_COUNT = Metrics.metric("async.pool.acquire", :counter, description: "Number of times a resource was invoked.")
-				RELEASE_COUNT = Metrics.metric("async.pool.release", :counter, description: "Number of times a resource was released.")
-				RETIRE_COUNT = Metrics.metric("async.pool.retire", :counter, description: "Number of times a resource was retired.")
 				
 				def acquire(...)
-					ACQUIRE_COUNT.emit(1, tags: @tags)
+					attributes = {
+						concurrency: @guard.limit,
+						size: @resources.size,
+						limit: @limit,
+					}
 					
-					super
+					@attributes.merge!(@tags) if @tags
+					
+					Traces.trace('async.pool.acquire', attributes: attributes) {super}
 				end
 				
 				def release(...)
-					super.tap do
-						RELEASE_COUNT.emit(1, tags: @tags)
-					end
+					attributes = {
+						concurrency: @guard.limit,
+						size: @resources.size,
+						limit: @limit,
+					}
+					
+					@attributes.merge!(@tags) if @tags
+					
+					Traces.trace('async.pool.release', attributes: attributes) {super}
 				end
 				
 				def retire(...)
-					super.tap do
-						RETIRE_COUNT.emit(1, tags: @tags)
-					end
+					attributes = {
+						concurrency: @guard.limit,
+						size: @resources.size,
+						limit: @limit,
+						**@tags,
+					}
+					
+					@attributes.merge!(@tags) if @tags
+					
+					Traces.trace('async.pool.retire', attributes: attributes) {super}
 				end
 			end
 		end
