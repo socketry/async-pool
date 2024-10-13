@@ -390,11 +390,9 @@ module Async
 				def create_resource(...)
 					attributes = {
 						concurrency: @guard.limit,
-						size: @resources.size,
-						limit: @limit,
 					}
 					
-					@attributes.merge!(@tags) if @tags
+					attributes.merge!(@tags) if @tags
 					
 					Traces.trace('async.pool.create', attributes: attributes) {super}
 				end
@@ -404,44 +402,38 @@ module Async
 						size: @resources.size,
 					}
 					
-					@attributes.merge!(@tags) if @tags
+					attributes.merge!(@tags) if @tags
 					
 					Traces.trace('async.pool.drain', attributes: attributes) {super}
 				end
 				
 				def acquire(...)
 					attributes = {
-						concurrency: @guard.limit,
 						size: @resources.size,
 						limit: @limit,
 					}
 					
-					@attributes.merge!(@tags) if @tags
+					attributes.merge!(@tags) if @tags
 					
 					Traces.trace('async.pool.acquire', attributes: attributes) {super}
 				end
 				
 				def release(...)
 					attributes = {
-						concurrency: @guard.limit,
 						size: @resources.size,
-						limit: @limit,
 					}
 					
-					@attributes.merge!(@tags) if @tags
+					attributes.merge!(@tags) if @tags
 					
 					Traces.trace('async.pool.release', attributes: attributes) {super}
 				end
 				
 				def retire(...)
 					attributes = {
-						concurrency: @guard.limit,
 						size: @resources.size,
-						limit: @limit,
-						**@tags,
 					}
 					
-					@attributes.merge!(@tags) if @tags
+					attributes.merge!(@tags) if @tags
 					
 					Traces.trace('async.pool.retire', attributes: attributes) {super}
 				end

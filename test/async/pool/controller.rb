@@ -50,7 +50,7 @@ describe Async::Pool::Controller do
 		let(:pool) {subject.new(Async::Pool::Resource, tags: {a: 1, b: 2})}
 		
 		it "can assign tags to the pool" do
-			expect(pool.tags).to be == ["a:1", "b:2"]
+			expect(pool.tags).to be == {a: 1, b: 2}
 		end
 	end
 	
