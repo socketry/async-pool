@@ -324,11 +324,7 @@ module Async
 			def available_resource
 				resource = nil
 				
-				Console.debug(self, "Acquiring concurrency guard...", blocking: @guard.blocking?)
-				
 				@guard.acquire do
-					Console.debug(self, "Acquired concurrency guard.")
-					
 					resource = acquire_or_create_resource
 				end
 				
