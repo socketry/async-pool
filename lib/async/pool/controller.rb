@@ -159,6 +159,7 @@ module Async
 				retire(resource) unless processed
 			end
 			
+			# Drain the pool, closing all resources.
 			def drain
 				Console.debug(self, "Draining pool...", size: @resources.size)
 				
@@ -168,7 +169,7 @@ module Async
 				end
 			end
 			
-			# Close all resources in the pool.
+			# Drain the pool, clear all resources, and stop the gardener.
 			def close
 				self.drain
 				
