@@ -20,6 +20,7 @@ group :test do
 	gem "decode"
 	gem "rubocop"
 	
+	gem "traces"
 	gem "sus-fixtures-async"
 	
 	gem "bake-test"
