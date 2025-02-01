@@ -11,8 +11,6 @@ require "async"
 require "async/notification"
 require "async/semaphore"
 
-require "traces"
-
 module Async
 	module Pool
 		# A resource pool controller.
@@ -379,59 +377,6 @@ module Async
 					Console.debug(self) {"No available resources, allocating new one..."}
 					
 					return create_resource
-				end
-			end
-			
-			Traces::Provider(self) do
-				def create_resource(...)
-					attributes = {
-						concurrency: @guard.limit,
-					}
-					
-					attributes.merge!(@tags) if @tags
-					
-					Traces.trace('async.pool.create', attributes: attributes) {super}
-				end
-				
-				def drain(...)
-					attributes = {
-						size: @resources.size,
-					}
-					
-					attributes.merge!(@tags) if @tags
-					
-					Traces.trace('async.pool.drain', attributes: attributes) {super}
-				end
-				
-				def acquire(...)
-					attributes = {
-						size: @resources.size,
-						limit: @limit,
-					}
-					
-					attributes.merge!(@tags) if @tags
-					
-					Traces.trace('async.pool.acquire', attributes: attributes) {super}
-				end
-				
-				def release(...)
-					attributes = {
-						size: @resources.size,
-					}
-					
-					attributes.merge!(@tags) if @tags
-					
-					Traces.trace('async.pool.release', attributes: attributes) {super}
-				end
-				
-				def retire(...)
-					attributes = {
-						size: @resources.size,
-					}
-					
-					attributes.merge!(@tags) if @tags
-					
-					Traces.trace('async.pool.retire', attributes: attributes) {super}
 				end
 			end
 		end
