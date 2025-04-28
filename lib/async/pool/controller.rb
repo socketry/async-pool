@@ -328,7 +328,7 @@ module Async
 				end
 				
 				return resource
-			rescue Exception => error
+			rescue Exception
 				reuse(resource) if resource
 				raise
 			end
