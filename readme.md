@@ -12,7 +12,9 @@ Please see the [project documentation](https://socketry.github.io/async-pool/) f
 
 ## Releases
 
-There are no documented releases.
+Please see the [project releases](https://socketry.github.io/async-pool/releases/index) for all releases.
+
+### v0.11.0
 
 ## Contributing
 
