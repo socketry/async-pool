@@ -10,6 +10,10 @@ Please see the [project documentation](https://socketry.github.io/async-pool/) f
 
   - [Getting Started](https://socketry.github.io/async-pool/guides/getting-started/index) - This guide explains how to use the `async-pool` gem to manage connection pooling.
 
+## Releases
+
+There are no documented releases.
+
 ## Contributing
 
 We welcome contributions to this project.

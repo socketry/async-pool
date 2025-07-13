@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Async::Pool::VERSION
 	
 	spec.summary = "A singleplex and multiplex resource pool for implementing robust clients."
-	spec.authors = ["Samuel Williams", "Olle Jonsson", "Simon Perepelitsa", "Thomas Morgan"]
+	spec.authors = ["Samuel Williams", "Jean Boussier", "Olle Jonsson", "Simon Perepelitsa", "Thomas Morgan"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ["release.cert"]
@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
 	
 	spec.files = Dir.glob(["{lib}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 3.1"
+	spec.required_ruby_version = ">= 3.2"
 	
 	spec.add_dependency "async", ">= 1.25"
 end

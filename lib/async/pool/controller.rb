@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2024, by Samuel Williams.
+# Copyright, 2019-2025, by Samuel Williams.
 # Copyright, 2020, by Simon Perepelitsa.
 # Copyright, 2024, by Thomas Morgan.
+# Copyright, 2025, by Jean Boussier.
 
 require "console/logger"
 
