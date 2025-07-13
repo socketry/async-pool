@@ -9,8 +9,9 @@
 require "console/logger"
 
 require "async"
-require "async/notification"
 require "async/semaphore"
+
+require "thread"
 
 module Async
 	module Pool
@@ -47,7 +48,8 @@ module Async
 				@available = []
 				
 				# Used to signal when a resource has been released:
-				@notification = Async::Notification.new
+				@mutex = Thread::Mutex.new
+				@condition = Thread::ConditionVariable.new
 			end
 			
 			# @attribute [Proc] The constructor used to create new resources.
@@ -124,8 +126,23 @@ module Async
 			end
 			
 			# Wait until a pool resource has been freed.
+			# @deprecated Use {wait_until_free} instead.
 			def wait
-				@notification.wait
+				@mutex.synchronize do
+					@condition.wait(@mutex)
+				end
+			end
+			
+			# Wait until the pool is not busy (no resources in use).
+			def wait_until_free
+				@mutex.synchronize do
+					if busy?
+						yield self if block_given?
+						
+						# Wait until the pool is not busy:
+						@condition.wait(@mutex) while busy?
+					end
+				end
 			end
 			
 			# Whether the pool is empty.
@@ -221,7 +238,7 @@ module Async
 				
 				resource.close
 				
-				@notification.signal
+				@mutex.synchronize {@condition.broadcast}
 				
 				return true
 			end
@@ -285,7 +302,7 @@ module Async
 				
 				@resources[resource] = usage - 1
 				
-				@notification.signal
+				@mutex.synchronize {@condition.broadcast}
 				
 				return true
 			end
@@ -293,11 +310,9 @@ module Async
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
-					@notification.wait
+					@mutex.synchronize {@condition.wait(@mutex)}
 				end
-				
 				# Be careful not to context switch or fail here.
-				
 				return resource
 			end
 			
@@ -345,10 +360,8 @@ module Async
 							return resource
 						end
 					end
-					
-					@notification.wait
+					@mutex.synchronize {@condition.wait(@mutex)}
 				end
-				
 				# Only when the pool has been completely drained, return nil:
 				return nil
 			end

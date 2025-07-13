@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2024, by Samuel Williams.
+# Copyright, 2019-2025, by Samuel Williams.
 
 require "nonblocking_resource"
 require "sus/fixtures/async/reactor_context"
@@ -407,10 +407,28 @@ describe Async::Pool::Controller do
 			expect(pool).not.to be(:busy?)
 		end
 	end
-end
+	
+	with "#wait_until_free" do
+		it "waits until the pool is not busy and yields if waited" do
+			pool = subject.new(Async::Pool::Resource, limit: 1)
+			resource = pool.acquire
+			waited = false
+			finished = false
 
-describe Async::Pool::Controller do
-	let(:pool) {subject.new(Async::Pool::Resource)}
+			Async do
+				Async::Task.current.sleep(0.01)
+				pool.release(resource)
+			end
+
+			pool.wait_until_free do
+				waited = true
+			end
+
+			finished = true
+			expect(waited).to be == true
+			expect(finished).to be == true
+		end
+	end
 	
 	with "#close" do
 		it "closes all resources when going out of scope" do

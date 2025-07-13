@@ -23,6 +23,7 @@ group :test do
 	
 	gem "traces"
 	gem "sus-fixtures-async"
+	gem "sus-fixtures-benchmark"
 	
 	gem "bake-test"
 	gem "bake-test-external"
