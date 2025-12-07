@@ -232,13 +232,13 @@ module Async
 			
 			# Retire a specific resource.
 			def retire(resource)
-				Console.debug(self) {"Retire #{resource}"}
+				Console.debug(self){"Retire #{resource}"}
 				
 				@resources.delete(resource)
 				
 				resource.close
 				
-				@mutex.synchronize {@condition.broadcast}
+				@mutex.synchronize{@condition.broadcast}
 				
 				return true
 			end
@@ -287,7 +287,7 @@ module Async
 			# end
 			
 			def reuse(resource)
-				Console.debug(self) {"Reuse #{resource}"}
+				Console.debug(self){"Reuse #{resource}"}
 				
 				usage = @resources[resource]
 				
@@ -302,7 +302,7 @@ module Async
 				
 				@resources[resource] = usage - 1
 				
-				@mutex.synchronize {@condition.broadcast}
+				@mutex.synchronize{@condition.broadcast}
 				
 				return true
 			end
@@ -310,7 +310,7 @@ module Async
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
-					@mutex.synchronize {@condition.wait(@mutex)}
+					@mutex.synchronize{@condition.wait(@mutex)}
 				end
 				# Be careful not to context switch or fail here.
 				return resource
@@ -360,7 +360,7 @@ module Async
 							return resource
 						end
 					end
-					@mutex.synchronize {@condition.wait(@mutex)}
+					@mutex.synchronize{@condition.wait(@mutex)}
 				end
 				# Only when the pool has been completely drained, return nil:
 				return nil
@@ -389,7 +389,7 @@ module Async
 				end
 				
 				if @limit.nil? or @resources.size < @limit
-					Console.debug(self) {"No available resources, allocating new one..."}
+					Console.debug(self){"No available resources, allocating new one..."}
 					
 					return create_resource
 				end

@@ -20,7 +20,7 @@ describe Async::Pool::Controller do
 		it "will put object in available list after one use" do
 			object = pool.acquire
 			mock(object) do |mock|
-				mock.replace(:reusable?) {true}
+				mock.replace(:reusable?){true}
 			end
 			
 			pool.release(object)
@@ -32,7 +32,7 @@ describe Async::Pool::Controller do
 		it "can acquire and release the same object up to the concurrency limit" do
 			object1 = pool.acquire
 			mock(object1) do |mock|
-				mock.replace(:reusable?) {true}
+				mock.replace(:reusable?){true}
 			end
 			
 			object2 = pool.acquire
@@ -53,7 +53,7 @@ describe Async::Pool::Controller do
 			object = pool.acquire
 			
 			mock(object) do |mock|
-				mock.replace(:reusable?) {false}
+				mock.replace(:reusable?){false}
 			end
 			
 			pool.release(object)
@@ -66,7 +66,7 @@ describe Async::Pool::Controller do
 		it "puts the item back into the available list if it is reusable" do
 			pool.acquire do |object|
 				mock(object) do |mock|
-					mock.replace(:reusable?) {true}
+					mock.replace(:reusable?){true}
 				end
 				
 				pool.prune

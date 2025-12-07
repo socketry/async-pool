@@ -13,7 +13,7 @@ Traces::Provider(Async::Pool::Controller) do
 		
 		attributes.merge!(@tags) if @tags
 		
-		Traces.trace("async.pool.create", attributes: attributes) {super}
+		Traces.trace("async.pool.create", attributes: attributes){super}
 	end
 	
 	def drain(...)
@@ -23,7 +23,7 @@ Traces::Provider(Async::Pool::Controller) do
 		
 		attributes.merge!(@tags) if @tags
 		
-		Traces.trace("async.pool.drain", attributes: attributes) {super}
+		Traces.trace("async.pool.drain", attributes: attributes){super}
 	end
 	
 	def acquire(...)
@@ -34,7 +34,7 @@ Traces::Provider(Async::Pool::Controller) do
 		
 		attributes.merge!(@tags) if @tags
 		
-		Traces.trace("async.pool.acquire", attributes: attributes) {super}
+		Traces.trace("async.pool.acquire", attributes: attributes){super}
 	end
 	
 	def release(...)
@@ -44,7 +44,7 @@ Traces::Provider(Async::Pool::Controller) do
 		
 		attributes.merge!(@tags) if @tags
 		
-		Traces.trace("async.pool.release", attributes: attributes) {super}
+		Traces.trace("async.pool.release", attributes: attributes){super}
 	end
 	
 	def retire(...)
@@ -54,6 +54,6 @@ Traces::Provider(Async::Pool::Controller) do
 		
 		attributes.merge!(@tags) if @tags
 		
-		Traces.trace("async.pool.retire", attributes: attributes) {super}
+		Traces.trace("async.pool.retire", attributes: attributes){super}
 	end
 end

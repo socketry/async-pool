@@ -181,7 +181,7 @@ describe Async::Pool::Controller do
 			resource = pool.acquire
 			
 			mock(resource) do |mock|
-				mock.replace(:reusable?) {true}
+				mock.replace(:reusable?){true}
 			end
 			
 			pool.release(resource)
@@ -273,7 +273,7 @@ describe Async::Pool::Controller do
 					pool.acquire{}
 				end
 			end
-				
+			
 			pool.release(resource)
 			
 			pool.close
@@ -414,16 +414,16 @@ describe Async::Pool::Controller do
 			resource = pool.acquire
 			waited = false
 			finished = false
-
+			
 			Async do
 				Async::Task.current.sleep(0.01)
 				pool.release(resource)
 			end
-
+			
 			pool.wait_until_free do
 				waited = true
 			end
-
+			
 			finished = true
 			expect(waited).to be == true
 			expect(finished).to be == true
