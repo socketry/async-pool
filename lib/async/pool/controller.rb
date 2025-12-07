@@ -254,12 +254,7 @@ module Async
 					@gardener = task
 					
 					while true
-						if @policy
-							@policy.call(self)
-						else
-							Task.yield
-						end
-						
+						@policy&.call(self)
 						self.wait
 					end
 				ensure
