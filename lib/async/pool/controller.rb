@@ -234,7 +234,7 @@ module Async
 			def retire(resource)
 				Console.debug(self){"Retire #{resource}"}
 				
-				@resources.delete(resource)
+				return false unless @resources.delete(resource)
 				
 				resource.close
 				
@@ -286,7 +286,11 @@ module Async
 				
 				usage = @resources[resource]
 				
-				if usage.nil? || usage.zero?
+				if usage.nil?
+					return false
+				end
+				
+				if usage.zero?
 					raise "Trying to reuse unacquired resource: #{resource}!"
 				end
 				
