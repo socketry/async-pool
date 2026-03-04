@@ -2,6 +2,7 @@
 
 # Released under the MIT License.
 # Copyright, 2019-2025, by Samuel Williams.
+# Copyright, 2026, by William T. Nelson.
 
 require "nonblocking_resource"
 require "sus/fixtures/async/reactor_context"

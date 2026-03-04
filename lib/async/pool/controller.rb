@@ -5,6 +5,7 @@
 # Copyright, 2020, by Simon Perepelitsa.
 # Copyright, 2024, by Thomas Morgan.
 # Copyright, 2025, by Jean Boussier.
+# Copyright, 2026, by William T. Nelson.
 
 require "console/logger"
 

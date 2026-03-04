@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Async::Pool::VERSION
 	
 	spec.summary = "A singleplex and multiplex resource pool for implementing robust clients."
-	spec.authors = ["Samuel Williams", "Jean Boussier", "Olle Jonsson", "Simon Perepelitsa", "Thomas Morgan"]
+	spec.authors = ["Samuel Williams", "Jean Boussier", "Olle Jonsson", "Simon Perepelitsa", "Thomas Morgan", "William T. Nelson"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ["release.cert"]

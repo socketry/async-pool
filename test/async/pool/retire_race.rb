@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by William T. Nelson.
+
 # Verifies that retire + release on the same resource does not raise
 # "Trying to reuse unacquired resource".
 #
