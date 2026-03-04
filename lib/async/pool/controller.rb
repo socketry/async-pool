@@ -27,9 +27,9 @@ module Async
 			#
 			# @parameter constructor [Proc] A block which creates a new resource.
 			# @parameter limit [Integer | Nil] The maximum number of resources that this pool can have at any given time. If nil, the pool can have an unlimited number of resources.
-			# @parameter concurrency [Integer] The maximum number of concurrent tasks that can be creating a new resource.
+			# @parameter concurrency [Integer] The maximum number of concurrent tasks that can be creating a new resource. Defaults to 1 to ensure the pool limit is enforced. Higher values may result in more resources being created than the limit under high load.
 			# @parameter policy [Policy] The pool policy.
-			def initialize(constructor, limit: nil, concurrency: (limit || 1), policy: nil, tags: nil)
+			def initialize(constructor, limit: nil, concurrency: 1, policy: nil, tags: nil)
 				@constructor = constructor
 				@limit = limit
 				

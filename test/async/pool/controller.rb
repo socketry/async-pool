@@ -443,4 +443,47 @@ describe Async::Pool::Controller do
 			expect(pool.resources).to be(:empty?)
 		end
 	end
+	
+	with "high concurrency with limit" do
+		it "does not exceed the configured limit" do
+			# Track the maximum pool size we observe
+			max_size = 0
+			mutex = Thread::Mutex.new
+			
+			constructor = proc do
+				# Introduce a small delay during resource creation to widen the race window
+				sleep(0.001)
+				Async::Pool::Resource.new
+			end
+			
+			# Default concurrency is limit (10), which is the issue
+			pool = subject.new(constructor, limit: 10)
+			
+			tasks = []
+			
+			# Create many concurrent tasks that all try to acquire at once
+			100.times do
+				tasks << Async do
+					pool.acquire do |resource|
+						# Track the maximum size of the pool thread-safely
+						mutex.synchronize do
+							current_size = pool.size
+							max_size = current_size if current_size > max_size
+						end
+						
+						# Simulate brief work
+						sleep(0.001)
+					end
+				end
+			end
+			
+			# Wait for all tasks to complete
+			tasks.each(&:wait)
+			
+			# The pool should never have exceeded the limit
+			expect(max_size).to be <= 10
+			
+			pool.close
+		end
+	end
 end
