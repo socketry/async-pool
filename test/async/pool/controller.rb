@@ -113,7 +113,7 @@ describe Async::Pool::Controller do
 				pool.release(resource)
 			end
 			
-			Async::Task.current.sleep(0.001)
+			sleep(0.001)
 			
 			expect(pool.available).to have_attributes(
 				size: be == 2
@@ -351,7 +351,7 @@ describe Async::Pool::Controller do
 		let(:pool) do
 			subject.wrap do
 				# Simulate a non-blocking connection:
-				Async::Task.current.sleep(0.1)
+				sleep(0.1)
 				
 				Async::Pool::Resource.new
 			end
@@ -415,7 +415,7 @@ describe Async::Pool::Controller do
 			finished = false
 			
 			Async do
-				Async::Task.current.sleep(0.01)
+				sleep(0.01)
 				pool.release(resource)
 			end
 			

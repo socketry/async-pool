@@ -11,7 +11,7 @@ require "async/pool/resource"
 
 class MyResource < Async::Pool::Resource
 	def self.call
-		Async::Task.current.sleep(1)
+		sleep(1)
 		self.new
 	end
 end
