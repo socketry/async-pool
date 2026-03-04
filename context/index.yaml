@@ -1,0 +1,13 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: A singleplex and multiplex resource pool for implementing robust clients.
+metadata:
+  documentation_uri: https://socketry.github.io/async-pool/
+  funding_uri: https://github.com/sponsors/ioquatix/
+  source_code_uri: https://github.com/socketry/async-pool.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to use the `async-pool` gem to manage connection
+    pooling.

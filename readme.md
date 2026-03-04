@@ -14,7 +14,7 @@ Please see the [project documentation](https://socketry.github.io/async-pool/) f
 
 Please see the [project releases](https://socketry.github.io/async-pool/releases/index) for all releases.
 
-### v0.11.0
+### v0.11.2
 
 ## Contributing
 
