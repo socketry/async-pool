@@ -301,6 +301,59 @@ describe Async::Pool::Controller do
 			
 			expect(events).to be == [:acquire, :close, :release, :closed]
 		end
+		
+		it "does not deadlock when Sync scope exits with unreleased resources" do
+			thread = Thread.new do
+				Sync do
+					policy = proc{|pool| pool.prune(0)}
+					pool = subject.new(Async::Pool::Resource, policy: policy)
+					
+					# Acquire a resource (starts the gardener) but don't release it
+					pool.acquire
+					
+					# Let gardener start and enter its wait loop
+					sleep 0.05
+				end
+			end
+			
+			result = thread.join(5)
+			thread.kill if result.nil?
+			
+			expect(result).not.to be_nil
+		end
+		
+		it "force-retires all resources even if closing one raises" do
+			closed = []
+			
+			failing_resource = Class.new(Async::Pool::Resource) do
+				define_method(:close) do
+					closed << self
+					raise "Resource failed to close!"
+				end
+			end
+			
+			thread = Thread.new do
+				Sync do
+					policy = proc{|pool| pool.prune(0)}
+					pool = subject.new(failing_resource, policy: policy)
+					
+					# Acquire two resources (concurrency 1 each) but don't release them:
+					pool.acquire
+					pool.acquire
+					
+					# Let the gardener start and enter its wait loop:
+					sleep 0.05
+				end
+			end
+			
+			result = thread.join(5)
+			thread.kill if result.nil?
+			
+			# Teardown must force-retire every resource, even though closing the
+			# first one raises:
+			expect(result).not.to be_nil
+			expect(closed.size).to be == 2
+		end
 	end
 	
 	with "#to_s" do

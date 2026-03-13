@@ -260,7 +260,7 @@ module Async
 					end
 				ensure
 					@gardener = nil
-					self.close
+					self.terminate
 				end
 			end
 			
@@ -350,6 +350,23 @@ module Async
 			end
 			
 			private
+			
+			# Force-retire all resources immediately, including busy ones, without waiting for them to be released. Unlike {drain}, this never blocks, so it is safe to call during cancellation when busy resources will never be released.
+			def terminate
+				# Re-read `@resources.first` each iteration: `retire` -> `resource.close` can yield, so the set of resources may change mid-teardown.
+				while (resource, _usage = @resources.first)
+					begin
+						retire(resource)
+					rescue => error
+						Console.warn(self, "Failed to retire resource during teardown!", resource: resource, exception: error)
+						
+						# Ensure progress so the loop cannot spin forever on a resource that failed to retire:
+						@resources.delete(resource)
+					end
+				end
+				
+				@available.clear
+			end
 			
 			# Acquire an existing resource with zero usage.
 			# If there are resources that are in use, wait until they are released.
