@@ -129,14 +129,12 @@ module Async
 			# Wait until a pool resource has been freed.
 			# @deprecated Use {wait_until_free} instead.
 			def wait
-				@mutex.synchronize do
-					@condition.wait(@mutex)
-				end
+				wait_for_condition
 			end
 			
 			# Wait until the pool is not busy (no resources in use).
 			def wait_until_free
-				@mutex.synchronize do
+				synchronize do
 					if busy?
 						yield self if block_given?
 						
@@ -310,7 +308,7 @@ module Async
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
-					@mutex.synchronize{@condition.wait(@mutex)}
+					wait_for_condition
 				end
 				# Be careful not to context switch or fail here.
 				return resource
@@ -351,6 +349,28 @@ module Async
 			
 			private
 			
+			# Work around Ruby bug #20907, fixed in Ruby 3.4 and backported to Ruby 3.3.7 and Ruby 3.2.7:
+			# https://bugs.ruby-lang.org/issues/20907
+			# TODO: Remove this workaround after Ruby 3.3 support is dropped.
+			#
+			# Hold the mutex for the duration of the block, releasing it afterwards only if we still own it: {Thread::ConditionVariable#wait} does not reacquire the mutex if the calling fiber is cancelled while blocked, and unlocking it then raises `ThreadError` instead of propagating the cancellation.
+			#
+			# The `@condition.broadcast` call sites do not need this, as `broadcast` never releases the mutex.
+			def synchronize
+				@mutex.lock
+				
+				return yield
+			ensure
+				@mutex.unlock if @mutex.owned?
+			end
+			
+			# Wait until signalled that a resource has been released or retired.
+			def wait_for_condition
+				synchronize do
+					@condition.wait(@mutex)
+				end
+			end
+			
 			# Acquire an existing resource with zero usage.
 			# If there are resources that are in use, wait until they are released.
 			def acquire_existing_resource
@@ -360,7 +380,7 @@ module Async
 							return resource
 						end
 					end
-					@mutex.synchronize{@condition.wait(@mutex)}
+					wait_for_condition
 				end
 				# Only when the pool has been completely drained, return nil:
 				return nil

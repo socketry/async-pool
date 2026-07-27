@@ -486,4 +486,63 @@ describe Async::Pool::Controller do
 			pool.close
 		end
 	end
+	
+	with "cancellation while waiting" do
+		# `Thread::ConditionVariable#wait` releases the mutex while it blocks, and does not reacquire it if the waiting fiber is cancelled at that point. Releasing the mutex unconditionally afterwards raises `ThreadError: Attempt to unlock a mutex which is not locked`, which fails the task instead of cancelling it.
+		
+		it "cancels the gardener when closing the pool" do
+			# Allocating a resource starts the gardener, which then parks in `#wait`:
+			resource = pool.acquire
+			gardener = pool.instance_variable_get(:@gardener)
+			pool.release(resource)
+			
+			# This stops the gardener while it is waiting:
+			pool.close
+			
+			expect(gardener.wait).to be_nil
+		end
+		
+		with "a limited pool" do
+			let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
+			
+			it "cancels a task waiting to acquire a resource" do
+				resource = pool.acquire
+				
+				# The pool is at its limit, so this parks in `#wait_for_resource`:
+				waiting = Async{pool.acquire}
+				
+				waiting.stop
+				expect(waiting.wait).to be_nil
+				
+				pool.release(resource)
+				pool.close
+			end
+			
+			it "cancels a task waiting for the pool to be free" do
+				resource = pool.acquire
+				
+				# The pool is busy, so this parks in `#wait_until_free`:
+				waiting = Async{pool.wait_until_free}
+				
+				waiting.stop
+				expect(waiting.wait).to be_nil
+				
+				pool.release(resource)
+				pool.close
+			end
+			
+			it "cancels a task draining the pool" do
+				resource = pool.acquire
+				
+				# The resource is still in use, so this parks in `#acquire_existing_resource`:
+				closing = Async{pool.close}
+				
+				closing.stop
+				expect(closing.wait).to be_nil
+				
+				pool.release(resource)
+				pool.close
+			end
+		end
+	end
 end
