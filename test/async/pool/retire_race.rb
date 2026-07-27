@@ -2,6 +2,7 @@
 
 # Released under the MIT License.
 # Copyright, 2026, by William T. Nelson.
+# Copyright, 2026, by Samuel Williams.
 
 # Verifies that retire + release on the same resource does not raise
 # "Trying to reuse unacquired resource".
