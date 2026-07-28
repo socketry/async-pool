@@ -486,4 +486,19 @@ describe Async::Pool::Controller do
 			pool.close
 		end
 	end
+	
+	with "cancellation while waiting" do
+		it "cancels the gardener when closing the pool" do
+			# Regression test for https://bugs.ruby-lang.org/issues/20907.
+			# Allocating a resource starts the gardener, which then parks in `#wait`:
+			resource = pool.acquire
+			gardener = pool.instance_variable_get(:@gardener)
+			pool.release(resource)
+			
+			# This stops the gardener while it is waiting:
+			pool.close
+			
+			expect(gardener.wait).to be_nil
+		end
+	end
 end
