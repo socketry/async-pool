@@ -42,12 +42,12 @@ module Async
 				
 				@tags = tags
 				
-				# All available resources:
-				@resources = {}
+				# All allocated resources. Each resource is tracked by identity, irrespective of any value equality it may define:
+				@resources = {}.compare_by_identity
 				
-				# Resources which may be available to be acquired. Resources are acquired in insertion order. Adding an existing resource preserves its position; a fully utilized resource is removed and reinserted at the end when capacity becomes available again.
+				# Resources which may be available to be acquired. Resources are compared by identity and acquired in insertion order. Adding an existing resource preserves its position; a fully utilized resource is removed and reinserted at the end when capacity becomes available again.
 				# This set may contain false positives, or resources which were okay but have since entered a state which is unusable.
-				@available = Set.new
+				@available = Set.new.compare_by_identity
 				
 				# Used to signal when a resource has been released:
 				@mutex = Thread::Mutex.new

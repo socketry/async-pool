@@ -53,6 +53,37 @@ describe Async::Pool::Controller do
 		end
 	end
 	
+	with "resources which compare equal" do
+		let(:resource_class) do
+			Class.new(Async::Pool::Resource) do
+				def == other
+					other.instance_of?(self.class)
+				end
+				
+				alias eql? ==
+				
+				def hash
+					self.class.hash
+				end
+			end
+		end
+		
+		let(:pool) {subject.new(resource_class)}
+		
+		it "tracks each resource by identity" do
+			resource1 = pool.acquire
+			resource2 = pool.acquire
+			
+			expect(resource2).not.to be_equal(resource1)
+			expect(pool.resources.size).to be == 2
+			
+			pool.release(resource1)
+			pool.release(resource2)
+			
+			expect(pool.available.to_a).to be == [resource1, resource2]
+		end
+	end
+	
 	with "a limited pool" do
 		let(:pool) {subject.new(Async::Pool::Resource, limit: 1)}
 		
