@@ -26,7 +26,7 @@ describe Async::Pool::Controller do
 			pool.release(object)
 			
 			expect(pool).to be(:active?)
-			expect(pool.available).to be == [object]
+			expect(pool.available.to_a).to be == [object]
 		end
 		
 		it "can acquire and release the same object up to the concurrency limit" do
@@ -41,10 +41,32 @@ describe Async::Pool::Controller do
 			expect(pool.available).to be(:empty?)
 			
 			pool.release(object1)
-			expect(pool.available).to be == [object1]
+			expect(pool.available.to_a).to be == [object1]
 			
 			pool.release(object2)
-			expect(pool.available).to be == [object1]
+			expect(pool.available.to_a).to be == [object1]
+		end
+		
+		it "acquires resources in insertion order" do
+			resource1 = pool.acquire
+			resource2 = pool.acquire
+			resource3 = pool.acquire
+			
+			expect(resource2).to be_equal(resource1)
+			expect(resource3).not.to be_equal(resource1)
+			
+			pool.release(resource1)
+			
+			expect(pool.available.to_a).to be == [resource3, resource1]
+			
+			pool.release(resource2)
+			expect(pool.available.to_a).to be == [resource3, resource1]
+			
+			pool.acquire do |resource|
+				expect(resource).to be_equal(resource3)
+			end
+			
+			pool.release(resource3)
 		end
 	end
 	
@@ -63,7 +85,7 @@ describe Async::Pool::Controller do
 			pool.release(resource1)
 			
 			expect(pool.resources[resource1]).to be == 1
-			expect(pool.available).to be == []
+			expect(pool.available).to be(:empty?)
 			expect(resource1).not.to be(:closed?)
 			
 			pool.release(resource2)
@@ -129,7 +151,7 @@ describe Async::Pool::Controller do
 			
 			expect(state).to be == :waiting
 			expect(pool.resources[resource]).to be == 1
-			expect(pool.available).to be == []
+			expect(pool.available).to be(:empty?)
 			expect(resource).not.to be(:closed?)
 			
 			pool.release(resource)
@@ -166,7 +188,7 @@ describe Async::Pool::Controller do
 			
 			pool.prune
 			
-			expect(pool.available).to be == []
+			expect(pool.available).to be(:empty?)
 		end
 		
 		it "puts the item back into the available list if it is reusable" do
@@ -177,7 +199,7 @@ describe Async::Pool::Controller do
 				
 				pool.prune
 				
-				expect(pool.available).to be == [object]
+				expect(pool.available.to_a).to be == [object]
 			end
 		end
 	end

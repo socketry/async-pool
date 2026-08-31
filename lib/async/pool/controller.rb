@@ -12,6 +12,7 @@ require "console/logger"
 require "async"
 require "async/semaphore"
 
+require "set"
 require "thread"
 
 module Async
@@ -44,9 +45,9 @@ module Async
 				# All available resources:
 				@resources = {}
 				
-				# Resources which may be available to be acquired:
-				# This list may contain false positives, or resources which were okay but have since entered a state which is unusuable.
-				@available = []
+				# Resources which may be available to be acquired. Resources are acquired in insertion order. Adding an existing resource preserves its position; a fully utilized resource is removed and reinserted at the end when capacity becomes available again.
+				# This set may contain false positives, or resources which were okay but have since entered a state which is unusable.
+				@available = Set.new
 				
 				# Used to signal when a resource has been released:
 				@mutex = Thread::Mutex.new
@@ -171,10 +172,7 @@ module Async
 				end
 				
 				if resource.reusable?
-					# If the resource was fully utilized, it now becomes available:
-					if usage == resource.concurrency - 1
-						@available.push(resource)
-					end
+					@available.add(resource)
 				else
 					# The resource must not be acquired again, but it cannot be retired until all existing users have released it:
 					@available.delete(resource)
@@ -319,7 +317,7 @@ module Async
 					
 					# Make the resource available if it can be used multiple times:
 					if resource.concurrency > 1
-						@available.push(resource)
+						@available.add(resource)
 					end
 				end
 				
@@ -371,24 +369,24 @@ module Async
 			end
 			
 			def acquire_or_create_resource
-				while resource = @available.last
+				while resource = @available.first
 					if usage = @resources[resource] and usage < resource.concurrency
 						if resource.viable?
 							usage = (@resources[resource] += 1)
 							
 							if usage == resource.concurrency
 								# The resource is used up to it's limit:
-								@available.pop
+								@available.delete(resource)
 							end
 							
 							return resource
 						else
-							@available.pop
+							@available.delete(resource)
 							retire(resource) if usage.zero?
 						end
 					else
 						# The resource has been removed already, so skip it and remove it from the availability list.
-						@available.pop
+						@available.delete(resource)
 					end
 				end
 				
