@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/async-pool/) f
 
 Please see the [project releases](https://socketry.github.io/async-pool/releases/index) for all releases.
 
+### v0.12.0
+
+  - Use identity-based tracking for pooled resources and preserve insertion order when selecting available resources.
+
 ### v0.11.2
 
 ## Contributing
