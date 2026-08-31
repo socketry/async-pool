@@ -16,6 +16,8 @@ Gem::Specification.new do |spec|
 	spec.homepage = "https://github.com/socketry/async-pool"
 	
 	spec.metadata = {
+		"bug_tracker_uri" => "https://github.com/socketry/async-pool/issues",
+		"changelog_uri" => "https://github.com/socketry/async-pool/blob/main/releases.md",
 		"documentation_uri" => "https://socketry.github.io/async-pool/",
 		"funding_uri" => "https://github.com/sponsors/ioquatix/",
 		"source_code_uri" => "https://github.com/socketry/async-pool.git",
