@@ -166,16 +166,34 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
-				processed = false
-				
-				# A resource that is not good should also not be reusable.
-				if resource.reusable?
-					processed = reuse(resource)
+				unless usage = decrement_usage(resource)
+					return false
 				end
 				
+				if resource.reusable?
+					# If the resource was fully utilized, it now becomes available:
+					if usage == resource.concurrency - 1
+						@available.push(resource)
+					end
+				else
+					# The resource must not be acquired again, but it cannot be retired until all existing users have released it:
+					@available.delete(resource)
+					
+					if usage.zero?
+						retire(resource)
+						resource = nil
+						return true
+					end
+				end
+				
+				@mutex.synchronize{@condition.broadcast}
+				
 				# @policy.released(self, resource)
+				
+				resource = nil
+				return true
 			ensure
-				retire(resource) unless processed
+				retire(resource) if resource
 			end
 			
 			# Drain the pool, closing all resources.
@@ -282,31 +300,6 @@ module Async
 			# 	@resources.count{|resource, usage| usage == 0}
 			# end
 			
-			def reuse(resource)
-				Console.debug(self){"Reuse #{resource}"}
-				
-				usage = @resources[resource]
-				
-				if usage.nil?
-					return false
-				end
-				
-				if usage.zero?
-					raise "Trying to reuse unacquired resource: #{resource}!"
-				end
-				
-				# If the resource was fully utilized, it now becomes available:
-				if usage == resource.concurrency
-					@available.push(resource)
-				end
-				
-				@resources[resource] = usage - 1
-				
-				@mutex.synchronize{@condition.broadcast}
-				
-				return true
-			end
-			
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
@@ -345,11 +338,22 @@ module Async
 				
 				return resource
 			rescue Exception
-				reuse(resource) if resource
+				release(resource) if resource
 				raise
 			end
 			
 			private
+			
+			def decrement_usage(resource)
+				usage = @resources[resource]
+				return unless usage
+				
+				if usage.zero?
+					raise "Trying to reuse unacquired resource: #{resource}!"
+				end
+				
+				return @resources[resource] = usage - 1
+			end
 			
 			# Acquire an existing resource with zero usage.
 			# If there are resources that are in use, wait until they are released.
@@ -379,8 +383,8 @@ module Async
 							
 							return resource
 						else
-							retire(resource)
 							@available.pop
+							retire(resource) if usage.zero?
 						end
 					else
 						# The resource has been removed already, so skip it and remove it from the availability list.
