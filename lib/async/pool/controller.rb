@@ -176,8 +176,7 @@ module Async
 						@available.push(resource)
 					end
 				else
-					# The resource must not be acquired again, but it cannot be retired
-					# until all existing users have released it:
+					# The resource must not be acquired again, but it cannot be retired until all existing users have released it:
 					@available.delete(resource)
 					
 					if usage.zero?
