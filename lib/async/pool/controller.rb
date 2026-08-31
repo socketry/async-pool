@@ -166,6 +166,8 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
+				processed = false
+				
 				usage = decrement_usage(resource)
 				return false unless usage
 				
@@ -178,17 +180,21 @@ module Async
 					# The resource must not be acquired again, but it cannot be retired
 					# until all existing users have released it:
 					@available.delete(resource)
-					return retire(resource) if usage.zero?
+					
+					if usage.zero?
+						processed = retire(resource)
+						return processed
+					end
 				end
 				
 				@mutex.synchronize{@condition.broadcast}
 				
 				# @policy.released(self, resource)
 				
+				processed = true
 				return true
-			rescue Exception
-				retire(resource)
-				raise
+			ensure
+				retire(resource) unless processed
 			end
 			
 			# Drain the pool, closing all resources.
