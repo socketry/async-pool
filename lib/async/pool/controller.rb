@@ -295,33 +295,6 @@ module Async
 			# 	@resources.count{|resource, usage| usage == 0}
 			# end
 			
-			def reuse(resource)
-				Console.debug(self){"Reuse #{resource}"}
-				
-				usage = decrement_usage(resource)
-				return false unless usage
-				
-				# If the resource was fully utilized, it now becomes available:
-				if usage == resource.concurrency - 1
-					@available.push(resource)
-				end
-				
-				@mutex.synchronize{@condition.broadcast}
-				
-				return true
-			end
-			
-			def decrement_usage(resource)
-				usage = @resources[resource]
-				return unless usage
-				
-				if usage.zero?
-					raise "Trying to reuse unacquired resource: #{resource}!"
-				end
-				
-				return @resources[resource] = usage - 1
-			end
-			
 			def wait_for_resource
 				# If we fail to create a resource (below), we will end up waiting for one to become resources.
 				until resource = available_resource
@@ -360,11 +333,22 @@ module Async
 				
 				return resource
 			rescue Exception
-				reuse(resource) if resource
+				release(resource) if resource
 				raise
 			end
 			
 			private
+			
+			def decrement_usage(resource)
+				usage = @resources[resource]
+				return unless usage
+				
+				if usage.zero?
+					raise "Trying to reuse unacquired resource: #{resource}!"
+				end
+				
+				return @resources[resource] = usage - 1
+			end
 			
 			# Acquire an existing resource with zero usage.
 			# If there are resources that are in use, wait until they are released.
