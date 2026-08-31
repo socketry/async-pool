@@ -166,16 +166,29 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
-				processed = false
+				usage = decrement_usage(resource)
+				return false unless usage
 				
-				# A resource that is not good should also not be reusable.
 				if resource.reusable?
-					processed = reuse(resource)
+					# If the resource was fully utilized, it now becomes available:
+					if usage == resource.concurrency - 1
+						@available.push(resource)
+					end
+				else
+					# The resource must not be acquired again, but it cannot be retired
+					# until all existing users have released it:
+					@available.delete(resource)
+					return retire(resource) if usage.zero?
 				end
 				
+				@mutex.synchronize{@condition.broadcast}
+				
 				# @policy.released(self, resource)
-			ensure
-				retire(resource) unless processed
+				
+				return true
+			rescue Exception
+				retire(resource)
+				raise
 			end
 			
 			# Drain the pool, closing all resources.
@@ -285,26 +298,28 @@ module Async
 			def reuse(resource)
 				Console.debug(self){"Reuse #{resource}"}
 				
-				usage = @resources[resource]
+				usage = decrement_usage(resource)
+				return false unless usage
 				
-				if usage.nil?
-					return false
+				# If the resource was fully utilized, it now becomes available:
+				if usage == resource.concurrency - 1
+					@available.push(resource)
 				end
+				
+				@mutex.synchronize{@condition.broadcast}
+				
+				return true
+			end
+			
+			def decrement_usage(resource)
+				usage = @resources[resource]
+				return unless usage
 				
 				if usage.zero?
 					raise "Trying to reuse unacquired resource: #{resource}!"
 				end
 				
-				# If the resource was fully utilized, it now becomes available:
-				if usage == resource.concurrency
-					@available.push(resource)
-				end
-				
-				@resources[resource] = usage - 1
-				
-				@mutex.synchronize{@condition.broadcast}
-				
-				return true
+				return @resources[resource] = usage - 1
 			end
 			
 			def wait_for_resource
@@ -379,8 +394,8 @@ module Async
 							
 							return resource
 						else
-							retire(resource)
 							@available.pop
+							retire(resource) if usage.zero?
 						end
 					else
 						# The resource has been removed already, so skip it and remove it from the availability list.

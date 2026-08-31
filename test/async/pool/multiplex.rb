@@ -48,6 +48,112 @@ describe Async::Pool::Controller do
 		end
 	end
 	
+	with "a non-reusable resource" do
+		let(:constructor) {lambda{Async::Pool::Resource.new(3)}}
+		let(:pool) {subject.new(constructor, limit: 1)}
+		
+		it "retires the resource after the final release" do
+			resource1 = pool.acquire
+			resource2 = pool.acquire
+			
+			mock(resource1) do |mock|
+				mock.replace(:reusable?){false}
+			end
+			
+			pool.release(resource1)
+			
+			expect(pool.resources[resource1]).to be == 1
+			expect(pool.available).to be == []
+			expect(resource1).not.to be(:closed?)
+			
+			pool.release(resource2)
+			
+			expect(pool.resources).not.to be(:key?, resource1)
+			expect(resource1).to be(:closed?)
+		end
+		
+		it "continues to occupy the pool until the final release" do
+			resource1 = pool.acquire
+			resource2 = pool.acquire
+			
+			mock(resource1) do |mock|
+				mock.replace(:reusable?){false}
+			end
+			
+			pool.release(resource1)
+			
+			state = :waiting
+			acquired = nil
+			acquire_task = Async do
+				acquired = pool.acquire
+				state = :acquired
+				pool.release(acquired)
+			end
+			
+			expect(state).to be == :waiting
+			expect(pool.size).to be == 1
+			
+			waited = false
+			wait_task = Async do
+				pool.wait_until_free
+				waited = true
+			end
+			
+			expect(waited).to be == false
+			
+			pool.release(resource2)
+			
+			acquire_task.wait
+			wait_task.wait
+			
+			expect(state).to be == :acquired
+			expect(acquired).not.to be_equal(resource1)
+			expect(waited).to be == true
+		end
+		
+		it "defers retirement when acquisition discovers an active non-viable resource" do
+			resource = pool.acquire
+			
+			mock(resource) do |mock|
+				mock.replace(:viable?){false}
+				mock.replace(:reusable?){false}
+			end
+			
+			state = :waiting
+			acquired = nil
+			acquire_task = Async do
+				acquired = pool.acquire
+				state = :acquired
+				pool.release(acquired)
+			end
+			
+			expect(state).to be == :waiting
+			expect(pool.resources[resource]).to be == 1
+			expect(pool.available).to be == []
+			expect(resource).not.to be(:closed?)
+			
+			pool.release(resource)
+			acquire_task.wait
+			
+			expect(state).to be == :acquired
+			expect(acquired).not.to be_equal(resource)
+			expect(resource).to be(:closed?)
+		end
+		
+		it "allows explicit retirement while the resource is active" do
+			resource1 = pool.acquire
+			resource2 = pool.acquire
+			
+			expect(pool.retire(resource1)).to be == true
+			
+			expect(pool.resources).not.to be(:key?, resource1)
+			expect(resource1).to be(:closed?)
+			
+			pool.release(resource1)
+			pool.release(resource2)
+		end
+	end
+	
 	with "#prune" do
 		it "removes the item from the availabilty list when it is retired" do
 			object = pool.acquire
