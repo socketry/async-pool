@@ -166,8 +166,9 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
-				usage = decrement_usage(resource)
-				return false unless usage
+				unless usage = decrement_usage(resource)
+					return false
+				end
 				
 				if resource.reusable?
 					# If the resource was fully utilized, it now becomes available:
