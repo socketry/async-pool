@@ -166,8 +166,6 @@ module Async
 			
 			# Make the resource resources and let waiting tasks know that there is something resources.
 			def release(resource)
-				processed = false
-				
 				usage = decrement_usage(resource)
 				return false unless usage
 				
@@ -182,8 +180,9 @@ module Async
 					@available.delete(resource)
 					
 					if usage.zero?
-						processed = retire(resource)
-						return processed
+						retire(resource)
+						resource = nil
+						return true
 					end
 				end
 				
@@ -191,10 +190,10 @@ module Async
 				
 				# @policy.released(self, resource)
 				
-				processed = true
+				resource = nil
 				return true
 			ensure
-				retire(resource) unless processed
+				retire(resource) if resource
 			end
 			
 			# Drain the pool, closing all resources.
